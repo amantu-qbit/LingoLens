@@ -3,105 +3,140 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="LingoLens — Settings"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        Width="600" Height="700" WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize" UseLayoutRounding="True">
+        Width="620" Height="720" WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
 
     <Window.Resources>
         <FontFamily x:Key="Icons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
     </Window.Resources>
 
-    <Border Margin="14" CornerRadius="16" Background="{StaticResource BackgroundBrush}"
+    <Border Margin="16" CornerRadius="18" Background="{StaticResource BackgroundBrush}"
             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.6" Color="Black" />
+            <DropShadowEffect BlurRadius="40" ShadowDepth="4" Opacity="0.65" Color="Black" />
         </Border.Effect>
 
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Title bar -->
-            <Grid Grid.Row="0" Height="52" MouseLeftButtonDown="OnDrag">
-                <TextBlock Text="Settings" Style="{StaticResource TitleText}" Margin="22,0,0,0" VerticalAlignment="Center" />
+            <!-- Title bar with brand -->
+            <Grid Grid.Row="0" Height="64" MouseLeftButtonDown="OnDrag">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
+                    <Grid Width="26" Height="26" Margin="0,0,12,0">
+                        <Ellipse Stroke="{StaticResource AccentGradientBrush}" StrokeThickness="2.2" Fill="{StaticResource SurfaceRaisedBrush}" />
+                        <Ellipse Width="11" Height="11" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.3" />
+                        <Ellipse Width="4" Height="4" Margin="6,6,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Fill="#90FFFFFF" />
+                    </Grid>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Settings" Style="{StaticResource TitleText}" />
+                        <TextBlock Text="LingoLens" Style="{StaticResource MicroText}" Margin="0,-1,0,0" />
+                    </StackPanel>
+                </StackPanel>
                 <Button Style="{StaticResource IconButton}" Content="&#xE8BB;" HorizontalAlignment="Right"
-                        Margin="0,0,12,0" VerticalAlignment="Center" Click="OnClose" />
+                        Margin="0,0,16,0" VerticalAlignment="Center" Click="OnClose" />
             </Grid>
 
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="22,4,22,22">
-                <StackPanel>
+            <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource HairlineBrush}" Margin="20,0" />
+
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="24,18,18,24">
+                <StackPanel Margin="0,0,6,0">
 
                     <!-- Compute -->
-                    <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                    <StackPanel Orientation="Horizontal" Margin="2,0,0,10">
+                        <Border Width="3" Height="13" CornerRadius="2" Background="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="COMPUTE DEVICE" Style="{StaticResource SectionHeader}" Margin="9,0,0,0" />
+                    </StackPanel>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,18">
                         <StackPanel>
-                            <TextBlock Text="COMPUTE DEVICE" Style="{StaticResource SectionHeader}" />
                             <ComboBox Style="{StaticResource DarkComboBox}"
                                       ItemsSource="{Binding DeviceItems}" SelectedItem="{Binding SelectedDevice}" />
-                            <StackPanel Orientation="Horizontal" Margin="2,10,0,0">
-                                <TextBlock Text="Model tier:" Style="{StaticResource CaptionText}" />
-                                <TextBlock Text="{Binding TierText}" Style="{StaticResource CaptionText}"
-                                           Foreground="{StaticResource AccentBrush}" Margin="6,0,0,0" FontWeight="SemiBold" />
+                            <StackPanel Orientation="Horizontal" Margin="2,12,0,0">
+                                <TextBlock Text="Model tier" Style="{StaticResource CaptionText}" />
+                                <Border Background="{StaticResource AccentSoftBrush}" CornerRadius="5" Padding="7,1" Margin="9,0,0,0">
+                                    <TextBlock Text="{Binding TierText}" Style="{StaticResource MonoText}" FontSize="11"
+                                               Foreground="{StaticResource AccentBrush}" />
+                                </Border>
                             </StackPanel>
-                            <TextBlock Style="{StaticResource MicroText}" Margin="2,8,0,0" TextWrapping="Wrap"
-                                       Text="Auto picks the fastest available accelerator (TensorRT/CUDA → DirectML → CPU). One build runs on any GPU." />
+                            <TextBlock Style="{StaticResource MicroText}" Margin="2,10,0,0" TextWrapping="Wrap"
+                                       Text="Auto picks the fastest available accelerator (TensorRT / CUDA → DirectML → CPU). One build runs on any GPU." />
                         </StackPanel>
                     </Border>
 
                     <!-- Languages -->
-                    <Border Style="{StaticResource Card}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="LANGUAGES" Style="{StaticResource SectionHeader}" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="36" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <ComboBox Grid.Column="0" Style="{StaticResource DarkComboBox}"
-                                          ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" />
-                                <TextBlock Grid.Column="1" Text="&#xE72A;" FontFamily="{StaticResource Icons}"
-                                           Foreground="{StaticResource TextTertiaryBrush}" HorizontalAlignment="Center"
-                                           VerticalAlignment="Center" />
-                                <ComboBox Grid.Column="2" Style="{StaticResource DarkComboBox}"
-                                          ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" />
-                            </Grid>
-                        </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="2,0,0,10">
+                        <Border Width="3" Height="13" CornerRadius="2" Background="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="LANGUAGES" Style="{StaticResource SectionHeader}" Margin="9,0,0,0" />
+                    </StackPanel>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,18">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0" Style="{StaticResource DarkComboBox}"
+                                      ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" />
+                            <TextBlock Grid.Column="1" Text="&#xE72A;" FontFamily="{StaticResource Icons}" FontSize="14"
+                                       Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="2" Style="{StaticResource DarkComboBox}"
+                                      ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" />
+                        </Grid>
                     </Border>
 
                     <!-- Overlay -->
-                    <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                    <StackPanel Orientation="Horizontal" Margin="2,0,0,10">
+                        <Border Width="3" Height="13" CornerRadius="2" Background="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="OVERLAY" Style="{StaticResource SectionHeader}" Margin="9,0,0,0" />
+                    </StackPanel>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,18">
                         <StackPanel>
-                            <TextBlock Text="OVERLAY" Style="{StaticResource SectionHeader}" />
-                            <TextBlock Text="Display style" Style="{StaticResource CaptionText}" Margin="2,0,0,6" />
+                            <TextBlock Text="Display style" Style="{StaticResource CaptionText}" Margin="2,0,0,7" />
                             <ComboBox Style="{StaticResource DarkComboBox}"
                                       ItemsSource="{Binding OverlayStyles}" SelectedItem="{Binding SelectedStyle}" />
 
-                            <Grid Margin="2,14,0,0">
+                            <Grid Margin="2,18,0,0">
                                 <TextBlock Text="Backplate opacity" Style="{StaticResource CaptionText}" />
+                                <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           Text="{Binding Value, ElementName=OpacitySlider, StringFormat={}{0:P0}}" />
                             </Grid>
-                            <Slider Style="{StaticResource DarkSlider}" Minimum="0.2" Maximum="1.0"
-                                    Value="{Binding BackplateOpacity}" Margin="0,4,0,0" />
+                            <Slider x:Name="OpacitySlider" Style="{StaticResource DarkSlider}" Minimum="0.2" Maximum="1.0"
+                                    Value="{Binding BackplateOpacity}" Margin="0,6,0,0" />
 
-                            <CheckBox Content="Auto-contrast backplate" IsChecked="{Binding AutoContrast}"
-                                      Foreground="{StaticResource TextPrimaryBrush}" Margin="2,12,0,0" />
+                            <Border Height="1" Background="{StaticResource HairlineBrush}" Margin="0,16,0,16" />
 
-                            <TextBlock Text="Minimum text scale" Style="{StaticResource CaptionText}" Margin="2,12,0,0" />
-                            <Slider Style="{StaticResource DarkSlider}" Minimum="0.4" Maximum="1.0"
-                                    Value="{Binding MinFontScale}" Margin="0,4,0,0" />
+                            <CheckBox Style="{StaticResource ToggleSwitch}" Content="Auto-contrast backplate"
+                                      IsChecked="{Binding AutoContrast}" />
+
+                            <Grid Margin="2,18,0,0">
+                                <TextBlock Text="Minimum text scale" Style="{StaticResource CaptionText}" />
+                                <TextBlock HorizontalAlignment="Right" Style="{StaticResource MonoText}"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           Text="{Binding Value, ElementName=ScaleSlider, StringFormat={}{0:P0}}" />
+                            </Grid>
+                            <Slider x:Name="ScaleSlider" Style="{StaticResource DarkSlider}" Minimum="0.4" Maximum="1.0"
+                                    Value="{Binding MinFontScale}" Margin="0,6,0,0" />
                         </StackPanel>
                     </Border>
 
                     <!-- Glossary -->
-                    <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                    <StackPanel Orientation="Horizontal" Margin="2,0,0,10">
+                        <Border Width="3" Height="13" CornerRadius="2" Background="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="GLOSSARY" Style="{StaticResource SectionHeader}" Margin="9,0,0,0" />
+                    </StackPanel>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,18">
                         <StackPanel>
-                            <TextBlock Text="GLOSSARY" Style="{StaticResource SectionHeader}" />
-                            <TextBlock Style="{StaticResource MicroText}" Margin="2,0,0,8" TextWrapping="Wrap"
-                                       Text="Custom term overrides take priority over machine translation." />
+                            <TextBlock Style="{StaticResource MicroText}" Margin="2,0,0,12" TextWrapping="Wrap"
+                                       Text="Custom term overrides always win over machine translation." />
                             <ItemsControl ItemsSource="{Binding GlossaryEntries}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="8" Padding="10,7" Margin="0,0,0,6">
+                                        <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="9" Padding="12,8" Margin="0,0,0,7"
+                                                BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
@@ -109,7 +144,8 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                                                     <TextBlock Text="{Binding Source}" Style="{StaticResource BodyText}" />
-                                                    <TextBlock Text="  →  " Style="{StaticResource CaptionText}" />
+                                                    <TextBlock Text="&#xE72A;" FontFamily="{StaticResource Icons}" FontSize="11"
+                                                               Foreground="{StaticResource TextTertiaryBrush}" Margin="9,1,9,0" VerticalAlignment="Center" />
                                                     <TextBlock Text="{Binding Target}" Style="{StaticResource BodyText}"
                                                                Foreground="{StaticResource AccentBrush}" />
                                                 </StackPanel>
@@ -122,15 +158,15 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <Grid Margin="0,6,0,0">
+                            <Grid Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}" Margin="0,0,6,0"
+                                <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}" Margin="0,0,7,0"
                                          Text="{Binding NewGlossarySource, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBox Grid.Column="1" Style="{StaticResource DarkTextBox}" Margin="0,0,6,0"
+                                <TextBox Grid.Column="1" Style="{StaticResource DarkTextBox}" Margin="0,0,7,0"
                                          Text="{Binding NewGlossaryTarget, UpdateSourceTrigger=PropertyChanged}" />
                                 <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="Add"
                                         Command="{Binding AddGlossaryCommand}" />
@@ -139,12 +175,15 @@
                     </Border>
 
                     <!-- About -->
+                    <StackPanel Orientation="Horizontal" Margin="2,0,0,10">
+                        <Border Width="3" Height="13" CornerRadius="2" Background="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="ABOUT" Style="{StaticResource SectionHeader}" Margin="9,0,0,0" />
+                    </StackPanel>
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="ABOUT" Style="{StaticResource SectionHeader}" />
                             <TextBlock Text="LingoLens" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
-                            <TextBlock Style="{StaticResource MicroText}" Margin="0,4,0,0" TextWrapping="Wrap"
-                                       Text="On-device screen translation. Nothing you see ever leaves your PC — capture, OCR and translation all run locally." />
+                            <TextBlock Style="{StaticResource MicroText}" Margin="0,5,0,0" TextWrapping="Wrap"
+                                       Text="On-device screen translation. Nothing you see ever leaves your PC — capture, OCR and translation all run locally. Toggle the bar any time with Ctrl+Alt+H." />
                         </StackPanel>
                     </Border>
 
