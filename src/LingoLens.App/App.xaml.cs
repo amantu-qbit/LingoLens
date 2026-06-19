@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -175,19 +176,45 @@ public partial class App : Application
         e.SetObserved();
     }
 
-    /// <summary>Logs a fatal error and surfaces it to the user with the log location.</summary>
+    private static int _fatalSurfaced;
+
+    /// <summary>
+    /// Logs a fatal error, opens the logs folder so the user can grab the latest log, and surfaces a
+    /// short message with the location. Every fatal is logged, but the folder + dialog are surfaced only
+    /// once per session so a repeating render-thread exception cannot spawn a wall of Explorer windows.
+    /// </summary>
     private static void Fatal(string context, Exception? ex)
     {
         try { Log.Fatal(ex, "{Context}", context); Log.CloseAndFlush(); } catch { }
+
+        if (Interlocked.Exchange(ref _fatalSurfaced, 1) != 0) return;
+
+        OpenLogsFolder();
+
         try
         {
             MessageBox.Show(
                 $"{context}.\n\n{ex?.GetType().Name}: {ex?.Message}\n\n" +
-                $"A detailed log was written to:\n{LogDirectory}\n\n" +
-                "Please share that log file so the issue can be fixed.",
+                $"The logs folder has been opened for you:\n{LogDirectory}\n\n" +
+                "Please share the latest log file so the issue can be fixed.",
                 "LingoLens — error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         catch { /* headless / no desktop session */ }
+    }
+
+    /// <summary>Opens the logs folder in Explorer (best-effort; never throws).</summary>
+    private static void OpenLogsFolder()
+    {
+        try
+        {
+            Directory.CreateDirectory(LogDirectory);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = LogDirectory,
+                UseShellExecute = true,
+            });
+        }
+        catch { /* no shell / no desktop session — the message box still shows the path */ }
     }
 
     protected override async void OnExit(ExitEventArgs e)

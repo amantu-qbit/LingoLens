@@ -9,7 +9,7 @@
     <Border Margin="14" CornerRadius="16" Background="{StaticResource BackgroundBrush}"
             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.6" Color="Black" />
+            <DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.55" Color="Black" />
         </Border.Effect>
 
         <Grid Margin="0">
@@ -21,14 +21,14 @@
             </Grid.RowDefinitions>
 
             <!-- Title bar -->
-            <Grid Grid.Row="0" Height="52" MouseLeftButtonDown="OnDrag">
-                <TextBlock Text="What should we translate?" Style="{StaticResource TitleText}"
+            <Grid Grid.Row="0" Height="56" MouseLeftButtonDown="OnDrag">
+                <TextBlock Text="What should I translate?" Style="{StaticResource TitleText}"
                            Margin="22,0,0,0" VerticalAlignment="Center" />
                 <Button Style="{StaticResource IconButton}" Content="&#xE8BB;" HorizontalAlignment="Right"
                         Margin="0,0,12,0" VerticalAlignment="Center" Click="OnCancel" />
             </Grid>
 
-            <TextBlock Grid.Row="1" Text="OPEN WINDOWS" Style="{StaticResource SectionHeader}" Margin="22,4,0,8" />
+            <TextBlock Grid.Row="1" Text="OPEN WINDOWS" Style="{StaticResource SectionHeader}" Margin="22,2,0,8" />
 
             <!-- Windows list -->
             <Border Grid.Row="2" Margin="18,0,18,0" CornerRadius="12" Background="{StaticResource SurfaceBrush}"
@@ -41,7 +41,8 @@
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="bd" CornerRadius="8" Padding="12,9" Margin="2" Background="Transparent">
+                                        <Border x:Name="bd" CornerRadius="8" Padding="12,9" Margin="2" Background="Transparent"
+                                                BorderBrush="Transparent" BorderThickness="1">
                                             <ContentPresenter />
                                         </Border>
                                         <ControlTemplate.Triggers>
@@ -49,9 +50,8 @@
                                                 <Setter TargetName="bd" Property="Background" Value="{StaticResource SurfaceAltBrush}" />
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+                                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentSoftBrush}" />
                                                 <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                                <Setter TargetName="bd" Property="BorderThickness" Value="1" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -63,7 +63,7 @@
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock Text="{Binding Title}" Style="{StaticResource BodyText}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding ProcessName}" Style="{StaticResource MicroText}" />
+                                <TextBlock Text="{Binding ProcessName}" Style="{StaticResource MicroText}" Margin="0,1,0,0" />
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -72,7 +72,7 @@
 
             <!-- Footer: monitor + region + actions -->
             <StackPanel Grid.Row="3" Margin="18,14,18,18">
-                <TextBlock Text="OR CAPTURE" Style="{StaticResource SectionHeader}" />
+                <TextBlock Text="OR CAPTURE" Style="{StaticResource SectionHeader}" Margin="0,0,0,8" />
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

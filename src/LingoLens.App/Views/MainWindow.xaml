@@ -12,28 +12,26 @@
         <FontFamily x:Key="Icons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
     </Window.Resources>
 
-    <!-- outer margin leaves room for the soft shadow -->
-    <Border Margin="20" CornerRadius="18" Background="{StaticResource SurfaceBrush}"
+    <!-- Outer margin leaves room for the soft window shadow. -->
+    <Border Margin="18" CornerRadius="14" Background="{StaticResource SurfaceBrush}"
             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-            MouseLeftButtonDown="OnDragArea_MouseDown" Padding="10,8">
+            MouseLeftButtonDown="OnDragArea_MouseDown" Padding="9,7">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="34" ShadowDepth="2" Opacity="0.6" Color="Black" />
+            <DropShadowEffect BlurRadius="28" ShadowDepth="2" Opacity="0.5" Color="Black" />
         </Border.Effect>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-            <!-- Aperture / lens brand mark -->
-            <Grid Width="30" Height="30" Margin="3,0,4,0">
-                <Ellipse Stroke="{StaticResource AccentGradientBrush}" StrokeThickness="2.5"
-                         Fill="{StaticResource SurfaceRaisedBrush}" />
-                <Ellipse Width="13" Height="13" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.4" />
-                <Ellipse Width="5" Height="5" Margin="7,7,0,0" HorizontalAlignment="Left"
-                         VerticalAlignment="Top" Fill="#90FFFFFF" />
+            <!-- Lens brand mark -->
+            <Grid Width="26" Height="26" Margin="4,0,6,0">
+                <Ellipse Stroke="{StaticResource AccentBrush}" StrokeThickness="2" />
+                <Ellipse Width="10" Height="10" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.4" Opacity="0.7" />
+                <Ellipse Width="3.5" Height="3.5" Fill="{StaticResource AccentBrush}" />
             </Grid>
 
             <!-- Primary Translate / Stop -->
             <Button Style="{StaticResource PrimaryButton}" Command="{Binding ToggleRunCommand}"
-                    Margin="6,0,0,0" Height="38" MinWidth="122">
+                    Margin="6,0,0,0" Height="38" MinWidth="120">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock FontFamily="{StaticResource Icons}" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center">
                         <TextBlock.Style>
@@ -51,7 +49,7 @@
                 </StackPanel>
             </Button>
 
-            <Rectangle Width="1" Height="24" Fill="{StaticResource HairlineBrush}" Margin="12,0" />
+            <Rectangle Width="1" Height="22" Fill="{StaticResource HairlineBrush}" Margin="11,0" />
 
             <!-- Target -->
             <Button Style="{StaticResource ChipButton}" Command="{Binding PickTargetCommand}" Height="36" ToolTip="Choose what to translate">
@@ -82,8 +80,8 @@
                 </StackPanel>
             </Button>
 
-            <!-- Instrument telemetry readout (only while running) -->
-            <Border Margin="12,0,0,0" CornerRadius="8" Background="{StaticResource BackgroundBrush}"
+            <!-- Live latency / cache readout (only while running) -->
+            <Border Margin="11,0,0,0" CornerRadius="8" Background="{StaticResource BackgroundBrush}"
                     BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" Padding="11,5"
                     VerticalAlignment="Center"
                     Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
@@ -95,7 +93,24 @@
                 </StackPanel>
             </Border>
 
-            <Rectangle Width="1" Height="24" Fill="{StaticResource HairlineBrush}" Margin="12,0" />
+            <!-- Model download readout (only while downloading) -->
+            <Border Margin="11,0,0,0" CornerRadius="8" Background="{StaticResource BackgroundBrush}"
+                    BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1" Padding="12,5"
+                    VerticalAlignment="Center" MinWidth="184"
+                    Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="{StaticResource Icons}" Text="&#xE896;" FontSize="12"
+                                   Foreground="{StaticResource AccentBrush}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding DownloadStatus}" Style="{StaticResource MicroText}"
+                                   Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ProgressBar Style="{StaticResource DarkProgressBar}" Margin="0,6,0,0"
+                                 Minimum="0" Maximum="1" Value="{Binding DownloadProgress}" />
+                </StackPanel>
+            </Border>
+
+            <Rectangle Width="1" Height="22" Fill="{StaticResource HairlineBrush}" Margin="11,0" />
 
             <!-- Window controls -->
             <Button Style="{StaticResource IconButton}" Command="{Binding OpenSettingsCommand}" ToolTip="Settings" Content="&#xE713;" />

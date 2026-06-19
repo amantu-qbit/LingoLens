@@ -7,7 +7,10 @@ using LingoLens.App.Views;
 using LingoLens.Core.Capture;
 using LingoLens.Core.Compute;
 using LingoLens.Core.Configuration;
+using LingoLens.Core.Models;
 using LingoLens.Core.Pipeline;
+using LingoLens.Translation;
+using LingoLens.Translation.Models;
 
 namespace LingoLens.App.ViewModels;
 
@@ -18,6 +21,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IComputeDeviceManager _devices;
     private readonly LingoLensOptions _options;
     private readonly TargetEnumerator _targets;
+    private readonly IModelRepository _models;
+    private readonly TranslatorSelector _translator;
     private readonly IServiceProvider _sp;
     private readonly Dispatcher _dispatcher = Application.Current.Dispatcher;
 
@@ -28,16 +33,20 @@ public sealed partial class MainViewModel : ObservableObject
         IComputeDeviceManager devices,
         LingoLensOptions options,
         TargetEnumerator targets,
+        IModelRepository models,
+        TranslatorSelector translator,
         IServiceProvider sp)
     {
         _pipeline = pipeline;
         _devices = devices;
         _options = options;
         _targets = targets;
+        _models = models;
+        _translator = translator;
         _sp = sp;
 
         _deviceName = devices.Selected.Name;
-        _languagePair = $"{Languages.Name(options.Translation.SourceLanguage)} -> {Languages.Name(options.Translation.TargetLanguage)}";
+        _languagePair = $"{Languages.Name(options.Translation.SourceLanguage)} → {Languages.Name(options.Translation.TargetLanguage)}";
         _statusText = "Ready";
         _targetName = "Choose a target";
 
@@ -54,6 +63,9 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _latencyText = "—";
     [ObservableProperty] private string _cacheText = "";
     [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private bool _isDownloading;
+    [ObservableProperty] private string _downloadStatus = "";
+    [ObservableProperty] private double _downloadProgress;
 
     public string RunLabel => IsRunning ? "Stop" : "Translate";
 
@@ -69,16 +81,21 @@ public sealed partial class MainViewModel : ObservableObject
             if (_pipeline.State is PipelineState.Running or PipelineState.Starting)
             {
                 await _pipeline.StopAsync();
+                return;
             }
-            else
+
+            if (_target is null)
             {
-                if (_target is null)
-                {
-                    PickTarget();
-                    if (_target is null) return;
-                }
-                await _pipeline.StartAsync(_target);
+                PickTarget();
+                if (_target is null) return;
             }
+
+            // Translation needs a local model. If none is installed, offer the one-time download here
+            // so the very first run actually translates instead of silently showing nothing.
+            if (!IsTranslationModelInstalled() && !await EnsureTranslationModelAsync())
+                return;
+
+            await _pipeline.StartAsync(_target);
         }
         finally { IsBusy = false; }
     }
@@ -87,10 +104,73 @@ public sealed partial class MainViewModel : ObservableObject
     private void PickTarget()
     {
         var picker = new TargetPickerWindow(_targets) { Owner = OwnerWindow };
-        if (picker.ShowDialog() == true && picker.SelectedTarget is { } t)
+        picker.ShowDialog();
+
+        if (picker.DrawRegionRequested)
         {
-            _target = t;
-            TargetName = t.DisplayName ?? t.Mode.ToString();
+            // The picker asked us to run the region selector; do it here (top-level, not nested).
+            var selector = new RegionSelectorWindow { Owner = OwnerWindow };
+            if (selector.ShowDialog() == true && selector.SelectedRegion is { } r && !r.IsEmpty)
+                SetTarget(CaptureTarget.ForRegion(r, $"Region {r.Width}×{r.Height}"));
+            return;
+        }
+
+        if (picker.SelectedTarget is { } t)
+            SetTarget(t);
+    }
+
+    private void SetTarget(CaptureTarget target)
+    {
+        _target = target;
+        TargetName = target.DisplayName ?? target.Mode.ToString();
+    }
+
+    private bool IsTranslationModelInstalled() =>
+        _models.IsInstalled(DefaultModelManifest.OpusMtBundleId) ||
+        _models.IsInstalled(DefaultModelManifest.Qwen3BundleId);
+
+    /// <summary>
+    /// Prompts for, downloads, and activates the default (Fast) translation model. Returns true when a
+    /// model is ready to use, false if the user declined or the download failed.
+    /// </summary>
+    private async Task<bool> EnsureTranslationModelAsync()
+    {
+        var answer = MessageBox.Show(OwnerWindow,
+            "LingoLens needs a translation model before it can translate.\n\n" +
+            "Download the Fast model now? (Opus-MT Chinese→English, about 450 MB, one time.\n" +
+            "It is saved on this PC and used entirely offline.)\n\n" +
+            "You can also pick a higher-quality model later in Settings → Models.",
+            "LingoLens — download translation model",
+            MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (answer != MessageBoxResult.Yes) return false;
+
+        IsDownloading = true;
+        DownloadProgress = 0;
+        DownloadStatus = "Preparing…";
+        var progress = new Progress<ModelDownloadProgress>(p =>
+        {
+            DownloadProgress = p.Fraction;
+            DownloadStatus = $"Downloading model… {p.Fraction * 100:0}%";
+        });
+
+        try
+        {
+            await _models.EnsureInstalledAsync(DefaultModelManifest.OpusMtBundleId, progress);
+            DownloadStatus = "Activating…";
+            await _translator.ReloadAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(OwnerWindow,
+                "The model download did not finish:\n\n" + ex.Message +
+                "\n\nCheck your connection and try again, or download it from Settings → Models.",
+                "LingoLens", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+        finally
+        {
+            IsDownloading = false;
         }
     }
 
@@ -101,7 +181,7 @@ public sealed partial class MainViewModel : ObservableObject
         var win = new SettingsWindow(vm) { Owner = OwnerWindow };
         win.ShowDialog();
         // reflect any language/device change made in settings
-        LanguagePair = $"{Languages.Name(_options.Translation.SourceLanguage)} -> {Languages.Name(_options.Translation.TargetLanguage)}";
+        LanguagePair = $"{Languages.Name(_options.Translation.SourceLanguage)} → {Languages.Name(_options.Translation.TargetLanguage)}";
         DeviceName = _devices.Selected.Name;
     }
 

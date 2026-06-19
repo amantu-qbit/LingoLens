@@ -2,76 +2,50 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ============================================================
-         LingoLens design tokens — "Optical Instrument"
-         Warm graphite + a single brass accent. Deliberately NOT a
-         SaaS purple gradient. Precision-tool detailing: hairlines,
-         mono telemetry, an aperture brand mark.
+         LingoLens design tokens
+         A quiet, near-monochrome dark interface with a single mint
+         accent used sparingly. High text contrast, hairline borders,
+         flat surfaces — no glows, no gradients, no decoration for its
+         own sake. Built on an 8px spacing rhythm.
          ============================================================ -->
 
-    <!-- Surfaces (warm near-black, layered elevation) -->
-    <Color x:Key="BackgroundColor">#0C0C0E</Color>
-    <Color x:Key="SurfaceColor">#151417</Color>
-    <Color x:Key="SurfaceAltColor">#1F1D22</Color>
-    <Color x:Key="SurfaceRaisedColor">#26232A</Color>
-    <Color x:Key="BorderColor">#2A2830</Color>
-    <Color x:Key="BorderStrongColor">#3C3945</Color>
+    <!-- Surfaces: neutral, near-black, layered by a few points of lightness. -->
+    <SolidColorBrush x:Key="BackgroundBrush"     Color="#0D0D0F" />
+    <SolidColorBrush x:Key="SurfaceBrush"        Color="#17181B" />
+    <SolidColorBrush x:Key="SurfaceAltBrush"     Color="#1E1F23" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush"  Color="#292A2F" />
+    <SolidColorBrush x:Key="BorderBrush"         Color="#2B2C32" />
+    <SolidColorBrush x:Key="BorderStrongBrush"   Color="#3A3B42" />
+    <SolidColorBrush x:Key="HairlineBrush"       Color="#222328" />
 
-    <!-- Text (warm whites/greys) -->
-    <Color x:Key="TextPrimaryColor">#F4F1EA</Color>
-    <Color x:Key="TextSecondaryColor">#A9A39A</Color>
-    <Color x:Key="TextTertiaryColor">#716B62</Color>
+    <!-- Text: crisp neutral whites with deliberate, readable steps. -->
+    <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#FAFAFA" />
+    <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#B7B9C0" />
+    <SolidColorBrush x:Key="TextTertiaryBrush"   Color="#878A93" />
 
-    <!-- Accent: brass / amber -->
-    <Color x:Key="AccentColor">#E0A45C</Color>
-    <Color x:Key="AccentColor2">#F1C485</Color>
-    <Color x:Key="AccentPressedColor">#C68A41</Color>
-    <Color x:Key="AccentInkColor">#1A1206</Color>   <!-- text on brass -->
+    <!-- Accent: one mint, plus its hover / pressed / ink-on-mint variants. -->
+    <SolidColorBrush x:Key="AccentBrush"         Color="#4FD6B8" />
+    <SolidColorBrush x:Key="AccentHoverBrush"    Color="#67E0C6" />
+    <SolidColorBrush x:Key="AccentPressedBrush"  Color="#3BB89C" />
+    <SolidColorBrush x:Key="AccentInkBrush"      Color="#06140F" />
+    <SolidColorBrush x:Key="AccentSoftBrush"     Color="#224FD6B8" />
+    <SolidColorBrush x:Key="AccentDimBrush"      Color="#6E4FD6B8" />
 
-    <!-- Semantic -->
-    <Color x:Key="SuccessColor">#6FBF8E</Color>
-    <Color x:Key="WarningColor">#E0B05C</Color>
-    <Color x:Key="DangerColor">#E0746B</Color>
+    <!-- Semantic (used rarely, kept close to the monochrome mood). -->
+    <SolidColorBrush x:Key="SuccessBrush"        Color="#56D49A" />
+    <SolidColorBrush x:Key="WarningBrush"        Color="#E2C275" />
+    <SolidColorBrush x:Key="DangerBrush"         Color="#E06C6C" />
 
-    <!-- ============ Brushes ============ -->
-    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
-    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
-    <SolidColorBrush x:Key="SurfaceAltBrush" Color="{StaticResource SurfaceAltColor}" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{StaticResource SurfaceRaisedColor}" />
-    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
-    <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}" />
-    <SolidColorBrush x:Key="HairlineBrush" Color="#211F26" />
-
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
-    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}" />
-
-    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
-    <SolidColorBrush x:Key="AccentInkBrush" Color="{StaticResource AccentInkColor}" />
-    <SolidColorBrush x:Key="AccentSoftBrush" Color="#22E0A45C" />
-    <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}" />
-    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
-    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
-    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}" />
-
-    <!-- Brass sheen for the single primary action -->
-    <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="{StaticResource AccentColor2}" Offset="0" />
-        <GradientStop Color="{StaticResource AccentColor}" Offset="0.55" />
-        <GradientStop Color="{StaticResource AccentPressedColor}" Offset="1" />
-    </LinearGradientBrush>
-
-    <!-- Subtle top highlight hairline for cards (light-from-above) -->
-    <LinearGradientBrush x:Key="CardSheenBrush" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#14FFFFFF" Offset="0" />
-        <GradientStop Color="#00FFFFFF" Offset="0.18" />
-    </LinearGradientBrush>
+    <!-- Colors kept as Color tokens for places that need a Color (shadows, etc.). -->
+    <Color x:Key="ShadowColor">#000000</Color>
+    <Color x:Key="AccentColor">#4FD6B8</Color>
 
     <!-- ============ Typography ============
-         Bahnschrift (technical DIN-style, ships with Windows) for display/labels,
-         Cascadia Mono for instrument readouts, Segoe UI Variable for body. -->
+         Segoe UI Variable for everything (ships with Windows 11; falls back to
+         Segoe UI). Cascadia Mono for numeric instrument readouts. Weight, size
+         and color carry the hierarchy — not extra font families. -->
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
-    <FontFamily x:Key="DisplayFont">Bahnschrift SemiBold, Segoe UI Semibold</FontFamily>
-    <FontFamily x:Key="DisplayFontLight">Bahnschrift Light, Bahnschrift, Segoe UI</FontFamily>
+    <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
 
 </ResourceDictionary>

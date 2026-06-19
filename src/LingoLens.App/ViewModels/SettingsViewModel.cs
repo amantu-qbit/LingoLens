@@ -4,9 +4,13 @@ using CommunityToolkit.Mvvm.Input;
 using LingoLens.App.Services;
 using LingoLens.Core.Compute;
 using LingoLens.Core.Configuration;
+using LingoLens.Core.Models;
 using LingoLens.Core.Overlay;
 using LingoLens.Core.Pipeline;
 using LingoLens.Core.Translation;
+using LingoLens.Ocr;
+using LingoLens.Translation;
+using LingoLens.Translation.Models;
 
 namespace LingoLens.App.ViewModels;
 
@@ -22,13 +26,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly LingoLensOptions _options;
     private readonly IGlossary _glossary;
     private readonly ITranslationPipeline _pipeline;
+    private readonly IModelRepository _models;
+    private readonly TranslatorSelector _translator;
 
-    public SettingsViewModel(IComputeDeviceManager devices, LingoLensOptions options, IGlossary glossary, ITranslationPipeline pipeline)
+    public SettingsViewModel(
+        IComputeDeviceManager devices,
+        LingoLensOptions options,
+        IGlossary glossary,
+        ITranslationPipeline pipeline,
+        IModelRepository models,
+        TranslatorSelector translator)
     {
         _devices = devices;
         _options = options;
         _glossary = glossary;
         _pipeline = pipeline;
+        _models = models;
+        _translator = translator;
 
         DeviceItems = new ObservableCollection<DeviceItem>(
             new[] { new DeviceItem("auto", $"Auto ({devices.Selected.Name})") }
@@ -49,6 +63,35 @@ public sealed partial class SettingsViewModel : ObservableObject
         _minFontScale = options.Overlay.MinFontScale;
 
         GlossaryEntries = new ObservableCollection<GlossaryEntry>(_glossary.Entries);
+
+        Models = BuildModelCatalog();
+    }
+
+    // ---- Models ----
+    public ObservableCollection<ModelBundleViewModel> Models { get; }
+
+    private ObservableCollection<ModelBundleViewModel> BuildModelCatalog()
+    {
+        // Translators hot-reload once installed; the OCR upgrade is picked up on the next launch.
+        Func<CancellationToken, Task> reloadTranslator = ct => _translator.ReloadAsync(ct);
+
+        return new ObservableCollection<ModelBundleViewModel>
+        {
+            new(_models, DefaultModelManifest.OpusMtBundleId,
+                title: "Fast translator",
+                subtitle: "Opus-MT Chinese → English. Light and quick; great default.",
+                badge: "Fast", sizeBytes: 449_136_569L, appliesAfterRestart: false, activateAsync: reloadTranslator),
+
+            new(_models, DefaultModelManifest.Qwen3BundleId,
+                title: "Quality translator",
+                subtitle: "Qwen3-4B. Best fluency and broad language coverage; larger download, GPU recommended.",
+                badge: "Quality", sizeBytes: 2_497_281_312L, appliesAfterRestart: false, activateAsync: reloadTranslator),
+
+            new(_models, OcrModelBundles.PpOcrV5Mobile,
+                title: "High-accuracy text reader",
+                subtitle: "PP-OCRv5 mobile. Sharper than the built-in reader for dense or stylised text.",
+                badge: "OCR", sizeBytes: 22_543_402L, appliesAfterRestart: true, activateAsync: null),
+        };
     }
 
     // ---- Compute ----

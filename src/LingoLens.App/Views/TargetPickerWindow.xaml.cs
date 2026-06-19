@@ -10,7 +10,15 @@ public partial class TargetPickerWindow : Window
 {
     private readonly TargetEnumerator _targets;
 
+    /// <summary>The target the user committed to, or null if they cancelled.</summary>
     public CaptureTarget? SelectedTarget { get; private set; }
+
+    /// <summary>
+    /// True when the user asked to draw a screen region. The caller shows the region selector itself
+    /// after this window closes — we deliberately do NOT open a nested dialog here (hiding a modal
+    /// window and then setting <c>DialogResult</c> is what used to crash the app).
+    /// </summary>
+    public bool DrawRegionRequested { get; private set; }
 
     public TargetPickerWindow(TargetEnumerator targets)
     {
@@ -51,29 +59,16 @@ public partial class TargetPickerWindow : Window
 
     private void OnDrawRegion(object sender, RoutedEventArgs e)
     {
-        Hide();
-        var selector = new RegionSelectorWindow();
-        bool? ok = selector.ShowDialog();
-        if (ok == true && selector.SelectedRegion is { } r && !r.IsEmpty)
-        {
-            Commit(CaptureTarget.ForRegion(r, $"Region {r.Width}×{r.Height}"));
-        }
-        else
-        {
-            Show();
-        }
-    }
-
-    private void OnCancel(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
+        // Hand the region flow back to the caller instead of nesting a dialog inside this one.
+        DrawRegionRequested = true;
         Close();
     }
+
+    private void OnCancel(object sender, RoutedEventArgs e) => Close();
 
     private void Commit(CaptureTarget target)
     {
         SelectedTarget = target;
-        DialogResult = true;
         Close();
     }
 }
