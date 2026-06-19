@@ -51,6 +51,4 @@
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI Semibold</FontFamily>
 
-    <system:Double xmlns:system="clr-namespace:System;assembly=System.Runtime" x:Key="RadiusLg">12</system:Double>
-
 </ResourceDictionary>
