@@ -16,11 +16,11 @@ TestResults/
 !.vscode/launch.json
 !.vscode/settings.json
 
-# Models & large assets (downloaded on first run / not committed)
-models/
+# Downloaded model weights (fetched on first run; NOT a source folder).
+# Root-anchored so it never matches source folders like src/*/Models/.
+/models/
 *.onnx
 *.gguf
-*.bin
 *.safetensors
 !**/model-manifest*.json
 
