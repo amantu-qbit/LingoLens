@@ -130,6 +130,37 @@ public sealed class Qwen3Translator : ITranslator
         }
     }
 
+    /// <summary>
+    /// Unloads the model weights and clears the "already attempted" latch so a later
+    /// <see cref="InitializeAsync"/> re-probes the model file. Called after the model bundle is
+    /// (re)installed. Waits for any in-flight inference to finish before unloading.
+    /// </summary>
+    public async Task ResetAsync(CancellationToken ct = default)
+    {
+        if (_disposed) return;
+        await _initGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await _inferGate.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                _executor = null;
+                _weights?.Dispose();
+                _weights = null;
+                _ready = false;
+                _initialized = false;
+            }
+            finally
+            {
+                _inferGate.Release();
+            }
+        }
+        finally
+        {
+            _initGate.Release();
+        }
+    }
+
     /// <inheritdoc />
     public async Task<TranslationResult> TranslateAsync(
         TranslationRequest request, CancellationToken ct = default)

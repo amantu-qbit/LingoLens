@@ -21,6 +21,10 @@ public sealed class WindowsMediaOcrEngine : IOcrEngine
     private static readonly string[] CandidateLanguages = { "zh-Hans", "zh-Hant" };
 
     private readonly ILogger<WindowsMediaOcrEngine> _logger;
+    // Windows.Media.Ocr.OcrEngine rejects overlapping RecognizeAsync calls ("Another RecognizeAsync
+    // operation is already running!"). The pipeline runs more than one inference worker, so serialize
+    // recognition on this engine instance.
+    private readonly SemaphoreSlim _recognizeGate = new(1, 1);
     private WinOcrEngine? _engine;
     private string? _languageTag;
     private bool _initialized;
@@ -95,7 +99,19 @@ public sealed class WindowsMediaOcrEngine : IOcrEngine
             if (clamped.IsEmpty) continue;
 
             using SoftwareBitmap bitmap = CropToSoftwareBitmap(bgra, stride, frameW, frameH, clamped);
-            OcrResult ocr = await _engine.RecognizeAsync(bitmap).AsTask(ct).ConfigureAwait(false);
+
+            // Only one RecognizeAsync may run on the engine at a time.
+            await _recognizeGate.WaitAsync(ct).ConfigureAwait(false);
+            OcrResult ocr;
+            try
+            {
+                ocr = await _engine.RecognizeAsync(bitmap).AsTask(ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                _recognizeGate.Release();
+            }
+
             AppendLines(ocr, clamped, results);
         }
 
@@ -180,6 +196,7 @@ public sealed class WindowsMediaOcrEngine : IOcrEngine
     {
         // Windows.Media.Ocr.OcrEngine is a WinRT projected object without IDisposable; drop the reference.
         _engine = null;
+        _recognizeGate.Dispose();
         return ValueTask.CompletedTask;
     }
 }

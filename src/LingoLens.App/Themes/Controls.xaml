@@ -11,16 +11,16 @@
     </Style>
 
     <Style x:Key="CaptionText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="12.5" />
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
     </Style>
 
     <Style x:Key="MicroText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
-        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontSize" Value="11.5" />
         <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}" />
     </Style>
 
-    <!-- Instrument readout (telemetry) -->
+    <!-- Numeric instrument readout. -->
     <Style x:Key="MonoText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
         <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
         <Setter Property="FontSize" Value="12" />
@@ -28,18 +28,18 @@
 
     <Style x:Key="TitleText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
         <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
-        <Setter Property="FontSize" Value="19" />
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
-    <!-- Section label: condensed caps, brass-adjacent tint -->
+    <!-- Section label: small, uppercase, tracked, secondary weight/colour. -->
     <Style x:Key="SectionHeader" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
-        <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
-        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}" />
-        <Setter Property="Margin" Value="0,0,0,10" />
     </Style>
 
-    <!-- ===================== Primary button (brass) ===================== -->
+    <!-- ===================== Primary button (solid mint, flat) ===================== -->
     <Style x:Key="PrimaryButton" TargetType="Button">
         <Setter Property="Foreground" Value="{StaticResource AccentInkBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
@@ -51,27 +51,15 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="bd" CornerRadius="9" Background="{StaticResource AccentGradientBrush}">
-                        <Border.Effect>
-                            <DropShadowEffect Color="#E0A45C" BlurRadius="16" ShadowDepth="0" Opacity="0.35" />
-                        </Border.Effect>
+                    <Border x:Name="bd" CornerRadius="8" Background="{StaticResource AccentBrush}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Effect">
-                                <Setter.Value>
-                                    <DropShadowEffect Color="#E0A45C" BlurRadius="22" ShadowDepth="0" Opacity="0.6" />
-                                </Setter.Value>
-                            </Setter>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentHoverBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentPressedBrush}" />
-                            <Setter TargetName="bd" Property="Effect">
-                                <Setter.Value>
-                                    <DropShadowEffect Color="#E0A45C" BlurRadius="10" ShadowDepth="0" Opacity="0.2" />
-                                </Setter.Value>
-                            </Setter>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="bd" Property="Opacity" Value="0.4" />
@@ -89,10 +77,11 @@
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Padding" Value="14,8" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="bd" CornerRadius="9" Background="{StaticResource SurfaceAltBrush}"
+                    <Border x:Name="bd" CornerRadius="8" Background="{StaticResource SurfaceAltBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
@@ -102,7 +91,7 @@
                             <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bd" Property="Opacity" Value="0.8" />
+                            <Setter TargetName="bd" Property="Opacity" Value="0.75" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="bd" Property="Opacity" Value="0.4" />
@@ -141,7 +130,7 @@
         </Setter>
     </Style>
 
-    <!-- ===================== Chip ===================== -->
+    <!-- ===================== Chip (compact secondary) ===================== -->
     <Style x:Key="ChipButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
         <Setter Property="Padding" Value="11,6" />
         <Setter Property="FontSize" Value="12.5" />
@@ -150,10 +139,10 @@
     <!-- ===================== Card ===================== -->
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="14" />
-        <Setter Property="Padding" Value="18" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="16" />
     </Style>
 
     <!-- ===================== Toggle switch (templated CheckBox) ===================== -->
@@ -166,11 +155,11 @@
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <StackPanel Orientation="Horizontal" Background="Transparent">
-                        <Border x:Name="track" Width="40" Height="22" CornerRadius="11"
+                        <Border x:Name="track" Width="38" Height="22" CornerRadius="11"
                                 Background="{StaticResource SurfaceRaisedBrush}"
                                 BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1">
                             <Ellipse x:Name="knob" Width="16" Height="16" HorizontalAlignment="Left"
-                                     Margin="3,0,0,0" Fill="{StaticResource TextSecondaryBrush}" />
+                                     Margin="2,0,0,0" Fill="{StaticResource TextSecondaryBrush}" />
                         </Border>
                         <ContentPresenter VerticalAlignment="Center" Margin="11,0,0,0" />
                     </StackPanel>
@@ -180,7 +169,7 @@
                             <Setter TargetName="track" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                             <Setter TargetName="knob" Property="Fill" Value="{StaticResource AccentInkBrush}" />
                             <Setter TargetName="knob" Property="HorizontalAlignment" Value="Right" />
-                            <Setter TargetName="knob" Property="Margin" Value="0,0,3,0" />
+                            <Setter TargetName="knob" Property="Margin" Value="0,0,2,0" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="track" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
@@ -206,7 +195,7 @@
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="bd" CornerRadius="9" Background="{StaticResource SurfaceAltBrush}"
+                                    <Border x:Name="bd" CornerRadius="8" Background="{StaticResource SurfaceAltBrush}"
                                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -231,9 +220,9 @@
                         <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom"
                                IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}">
                             <Border Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderStrongBrush}"
-                                    BorderThickness="1" CornerRadius="9" Margin="0,6,0,0" MinWidth="{Binding ActualWidth, ElementName=tb}">
+                                    BorderThickness="1" CornerRadius="8" Margin="0,6,0,0" MinWidth="{Binding ActualWidth, ElementName=tb}">
                                 <Border.Effect>
-                                    <DropShadowEffect BlurRadius="24" ShadowDepth="0" Opacity="0.5" Color="Black" />
+                                    <DropShadowEffect BlurRadius="20" ShadowDepth="0" Opacity="0.45" Color="Black" />
                                 </Border.Effect>
                                 <ScrollViewer MaxHeight="300" Margin="2">
                                     <ItemsPresenter />
@@ -254,7 +243,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
-                    <Border x:Name="bd" Background="Transparent" CornerRadius="7" Margin="4,2" Padding="{TemplateBinding Padding}">
+                    <Border x:Name="bd" Background="Transparent" CornerRadius="6" Margin="4,2" Padding="{TemplateBinding Padding}">
                         <ContentPresenter />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -282,7 +271,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="bd" CornerRadius="9" Background="{StaticResource SurfaceAltBrush}"
+                    <Border x:Name="bd" CornerRadius="8" Background="{StaticResource SurfaceAltBrush}"
                             BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="11,0">
                         <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
                     </Border>
@@ -324,18 +313,34 @@
                                 </RepeatButton>
                             </Track.IncreaseRepeatButton>
                             <Track.Thumb>
-                                <Thumb Width="18" Height="18">
+                                <Thumb Width="16" Height="16">
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Grid>
-                                                <Ellipse Fill="{StaticResource TextPrimaryBrush}" />
-                                                <Ellipse Margin="5" Fill="{StaticResource AccentBrush}" />
-                                            </Grid>
+                                            <Ellipse Fill="{StaticResource AccentBrush}" />
                                         </ControlTemplate>
                                     </Thumb.Template>
                                 </Thumb>
                             </Track.Thumb>
                         </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Progress bar (determinate) ===================== -->
+    <Style x:Key="DarkProgressBar" TargetType="ProgressBar">
+        <Setter Property="Height" Value="6" />
+        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Border CornerRadius="3" Background="{TemplateBinding Background}" />
+                        <Border x:Name="PART_Track" />
+                        <Border x:Name="PART_Indicator" HorizontalAlignment="Left" CornerRadius="3"
+                                Background="{TemplateBinding Foreground}" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

@@ -32,6 +32,7 @@ public sealed class OpusMtTranslator : ITranslator
     private readonly IComputeDeviceManager _devices;
     private readonly ILogger<OpusMtTranslator> _logger;
     private readonly SemaphoreSlim _initGate = new(1, 1);
+    private readonly SemaphoreSlim _inferGate = new(1, 1); // serialize decode vs. reset/teardown
 
     private SessionOptions? _sessionOptions;
     private InferenceSession? _encoder;
@@ -248,39 +249,80 @@ public sealed class OpusMtTranslator : ITranslator
 
         var results = new TranslatedItem[request.Items.Count];
 
-        // The encoder/decoder graphs here run one sequence at a time (no batch padding) to keep the
-        // implementation robust across exports; the pipeline already batches at a higher level and
-        // the cache absorbs repeats. Items are translated sequentially on the inference thread.
-        for (int i = 0; i < request.Items.Count; i++)
+        // Hold the inference gate across the whole batch so a concurrent ResetAsync/DisposeAsync cannot
+        // free the ONNX sessions out from under an in-flight decode.
+        await _inferGate.WaitAsync(ct).ConfigureAwait(false);
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            var item = request.Items[i];
-            string target;
-            try
+            // The encoder/decoder graphs here run one sequence at a time (no batch padding) to keep the
+            // implementation robust across exports; the pipeline already batches at a higher level and
+            // the cache absorbs repeats. Items are translated sequentially on the inference thread.
+            for (int i = 0; i < request.Items.Count; i++)
             {
-                target = await Task.Run(() => TranslateOne(item.Source, ct), ct).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Opus-MT failed on item {Id}; returning source verbatim.", item.Id);
-                target = item.Source;
-            }
+                ct.ThrowIfCancellationRequested();
+                var item = request.Items[i];
+                string target;
+                try
+                {
+                    target = await Task.Run(() => TranslateOne(item.Source, ct), ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Opus-MT failed on item {Id}; returning source verbatim.", item.Id);
+                    target = item.Source;
+                }
 
-            results[i] = new TranslatedItem
-            {
-                Id = item.Id,
-                Source = item.Source,
-                Target = target,
-                FromCache = false,
-                Confidence = 1.0,
-            };
+                results[i] = new TranslatedItem
+                {
+                    Id = item.Id,
+                    Source = item.Source,
+                    Target = target,
+                    FromCache = false,
+                    Confidence = 1.0,
+                };
+            }
+        }
+        finally
+        {
+            _inferGate.Release();
         }
 
         return new TranslationResult(results);
+    }
+
+    /// <summary>
+    /// Drops the loaded sessions and clears the "already attempted" latch so a later
+    /// <see cref="InitializeAsync"/> re-probes the model files. Called after the model bundle is
+    /// (re)installed. Waits for any in-flight decode to finish before tearing down.
+    /// </summary>
+    public async Task ResetAsync(CancellationToken ct = default)
+    {
+        if (_disposed) return;
+        await _initGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await _inferGate.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                DisposeSessions();
+                _sourceTokenizer = null;
+                _targetTokenizer = null;
+                _ready = false;
+                _initialized = false;
+            }
+            finally
+            {
+                _inferGate.Release();
+            }
+        }
+        finally
+        {
+            _initGate.Release();
+        }
     }
 
     private string TranslateOne(string source, CancellationToken ct)
@@ -444,7 +486,17 @@ public sealed class OpusMtTranslator : ITranslator
 
         try
         {
-            DisposeSessions();
+            // Drain any in-flight decode before freeing the sessions and the gate.
+            await _inferGate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                DisposeSessions();
+            }
+            finally
+            {
+                _inferGate.Release();
+                _inferGate.Dispose();
+            }
         }
         finally
         {

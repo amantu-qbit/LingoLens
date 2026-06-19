@@ -4,15 +4,21 @@
         Title="Select a region"
         WindowStyle="None" AllowsTransparency="True" ResizeMode="NoResize"
         ShowInTaskbar="False" Topmost="True" Cursor="Cross"
-        Background="#40000000">
+        Background="#59000000">
 
     <Canvas x:Name="RootCanvas">
         <Rectangle x:Name="SelectionBox" Visibility="Collapsed"
-                   Stroke="#7C6CF0" StrokeThickness="2" Fill="#207C6CF0" />
-        <Border x:Name="Hint" Background="#CC16161F" CornerRadius="10" Padding="16,10"
+                   Stroke="#4FD6B8" StrokeThickness="1.5" Fill="#244FD6B8" />
+        <Border x:Name="Hint" Background="#E6131417" CornerRadius="10" Padding="16,11"
+                BorderBrush="#2B2C32" BorderThickness="1"
                 Canvas.Left="0" Canvas.Top="0">
-            <TextBlock Text="Drag to select a region · Esc to cancel"
-                       Foreground="#F4F4F8" FontFamily="Segoe UI" FontSize="13" />
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="9" Height="9" Stroke="#4FD6B8" StrokeThickness="1.6" VerticalAlignment="Center" Margin="0,0,9,0" />
+                <TextBlock Text="Drag to select a region" Foreground="#FAFAFA"
+                           FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" VerticalAlignment="Center" />
+                <TextBlock Text="Esc to cancel" Foreground="#878A93"
+                           FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" VerticalAlignment="Center" Margin="12,0,0,0" />
+            </StackPanel>
         </Border>
     </Canvas>
 </Window>

@@ -74,6 +74,28 @@ public sealed class TranslatorSelector : ITranslator
         }
     }
 
+    /// <summary>
+    /// Re-evaluates the available backends after the installed model set changes (e.g. the user just
+    /// downloaded a model). Resets both backends and clears the cached selection so the next translate
+    /// picks up — and lazily loads — whichever backend is now ready. Safe to call while the pipeline is
+    /// running: each backend's reset waits for any in-flight inference to finish before tearing down.
+    /// </summary>
+    public async Task ReloadAsync(CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await _opus.ResetAsync(ct).ConfigureAwait(false);
+            await _qwen.ResetAsync(ct).ConfigureAwait(false);
+            _active = null;
+            _activeInner = null;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     /// <inheritdoc />
     public async Task<TranslationResult> TranslateAsync(
         TranslationRequest request, CancellationToken ct = default)
