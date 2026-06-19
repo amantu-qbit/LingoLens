@@ -25,17 +25,24 @@ public sealed record CaptureTarget
     /// <summary>Region in virtual-desktop pixel coordinates for <see cref="CaptureMode.Region"/>.</summary>
     public RectI Region { get; init; } = RectI.Empty;
 
+    /// <summary>
+    /// Where the target sits on the virtual desktop, in physical pixels — used to position the overlay
+    /// for <see cref="CaptureMode.Monitor"/> and <see cref="CaptureMode.Window"/> targets (Region targets
+    /// use <see cref="Region"/>). Empty when unknown.
+    /// </summary>
+    public RectI ScreenBounds { get; init; } = RectI.Empty;
+
     /// <summary>Optional friendly label (window title / monitor name) for UI.</summary>
     public string? DisplayName { get; init; }
 
-    public static CaptureTarget ForWindow(nint hwnd, string? name = null) =>
-        new() { Mode = CaptureMode.Window, WindowHandle = hwnd, DisplayName = name };
+    public static CaptureTarget ForWindow(nint hwnd, string? name = null, RectI screenBounds = default) =>
+        new() { Mode = CaptureMode.Window, WindowHandle = hwnd, DisplayName = name, ScreenBounds = screenBounds };
 
-    public static CaptureTarget ForMonitor(nint hmonitor, string? name = null) =>
-        new() { Mode = CaptureMode.Monitor, MonitorHandle = hmonitor, DisplayName = name };
+    public static CaptureTarget ForMonitor(nint hmonitor, string? name = null, RectI screenBounds = default) =>
+        new() { Mode = CaptureMode.Monitor, MonitorHandle = hmonitor, DisplayName = name, ScreenBounds = screenBounds };
 
     public static CaptureTarget ForRegion(RectI region, string? name = null) =>
-        new() { Mode = CaptureMode.Region, Region = region, DisplayName = name };
+        new() { Mode = CaptureMode.Region, Region = region, ScreenBounds = region, DisplayName = name };
 }
 
 /// <summary>

@@ -8,13 +8,29 @@ namespace LingoLens.App.Services;
 /// <summary>A capturable window candidate for the target picker.</summary>
 public sealed record WindowCandidate(nint Handle, string Title, string ProcessName)
 {
-    public CaptureTarget ToTarget() => CaptureTarget.ForWindow(Handle, Title);
+    public CaptureTarget ToTarget()
+    {
+        // The window's current visible on-screen rect, so the overlay can be positioned over it. Prefer the
+        // DWM extended frame bounds (the actual visible rectangle, matching what Windows Graphics Capture
+        // records) over GetWindowRect, which includes the invisible resize border on Windows 10/11.
+        RectI bounds = RectI.Empty;
+        int rectSize = Marshal.SizeOf<NativeMethods.RECT>();
+        if (NativeMethods.DwmGetWindowAttribute(Handle, NativeMethods.DWMWA_EXTENDED_FRAME_BOUNDS, out NativeMethods.RECT fr, rectSize) == 0
+            && fr.right > fr.left && fr.bottom > fr.top)
+            bounds = new RectI(fr.left, fr.top, fr.right - fr.left, fr.bottom - fr.top);
+        else if (NativeMethods.GetWindowRect(Handle, out NativeMethods.RECT r) && r.right > r.left && r.bottom > r.top)
+            bounds = new RectI(r.left, r.top, r.right - r.left, r.bottom - r.top);
+        return CaptureTarget.ForWindow(Handle, Title, bounds);
+    }
 }
 
 /// <summary>A monitor candidate for the target picker.</summary>
 public sealed record MonitorCandidate(nint Handle, string Name, RectI Bounds, bool IsPrimary)
 {
-    public CaptureTarget ToTarget() => CaptureTarget.ForMonitor(Handle, Name);
+    public CaptureTarget ToTarget() => CaptureTarget.ForMonitor(Handle, Name, Bounds);
+
+    // Shown as the selected item / list entry in the monitor picker.
+    public override string ToString() => Name;
 }
 
 /// <summary>Enumerates top-level windows and monitors for selecting a capture target.</summary>
