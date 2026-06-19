@@ -1,0 +1,35 @@
+[package]
+name = "lingolens-overlay"
+version = "0.1.0"
+edition = "2021"
+description = "Experimental Rust sidecar for LingoLens: hosts the always-on, click-through translation overlay driven by the C# pipeline over a simple JSON-line protocol."
+license = "MIT"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# The native overlay (transparent, click-through, DirectComposition) uses the `windows` crate.
+# It is intentionally NOT wired into the default build yet — see README.md ("Implementation plan").
+# When implemented, add:
+# [target.'cfg(windows)'.dependencies]
+# windows = { version = "0.58", features = [
+#   "Win32_Foundation",
+#   "Win32_UI_WindowsAndMessaging",
+#   "Win32_Graphics_Gdi",
+#   "Win32_Graphics_Dwm",
+#   "Win32_Graphics_Direct2D",
+#   "Win32_Graphics_Direct2D_Common",
+#   "Win32_Graphics_DirectWrite",
+#   "Win32_Graphics_DirectComposition",
+#   "Win32_Graphics_Dxgi",
+#   "Win32_Graphics_Dxgi_Common",
+#   "Win32_Graphics_Direct3D11",
+#   "Win32_System_Com",
+# ] }
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+panic = "abort"
