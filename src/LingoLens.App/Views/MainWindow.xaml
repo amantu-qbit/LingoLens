@@ -1,0 +1,97 @@
+<Window x:Class="LingoLens.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LingoLens"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" SizeToContent="WidthAndHeight"
+        Topmost="True" ShowInTaskbar="True" WindowStartupLocation="Manual"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <FontFamily x:Key="Icons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+    </Window.Resources>
+
+    <!-- margin leaves room for the soft shadow -->
+    <Border Margin="18" CornerRadius="16" Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            MouseLeftButtonDown="OnDragArea_MouseDown" Padding="8,7">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.55" Color="Black" />
+        </Border.Effect>
+
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+            <!-- Brand mark -->
+            <Border Width="30" Height="30" CornerRadius="9" Background="{StaticResource AccentGradientBrush}" Margin="2,0,4,0">
+                <TextBlock FontFamily="{StaticResource Icons}" Text="&#xE774;" Foreground="White"
+                           FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Primary Translate / Stop -->
+            <Button Style="{StaticResource PrimaryButton}" Command="{Binding ToggleRunCommand}"
+                    Margin="6,0,0,0" Height="36" MinWidth="118">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="{StaticResource Icons}" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="&#xE768;" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                        <Setter Property="Text" Value="&#xE71A;" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding RunLabel}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                </StackPanel>
+            </Button>
+
+            <Rectangle Width="1" Height="22" Fill="{StaticResource BorderBrush}" Margin="10,0" />
+
+            <!-- Target -->
+            <Button Style="{StaticResource ChipButton}" Command="{Binding PickTargetCommand}" Height="34">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="{StaticResource Icons}" Text="&#xE737;" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding TargetName}" VerticalAlignment="Center" Style="{StaticResource BodyText}"
+                               MaxWidth="160" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Button>
+
+            <!-- Language -->
+            <Button Style="{StaticResource ChipButton}" Command="{Binding OpenSettingsCommand}" Height="34" Margin="6,0,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="{StaticResource Icons}" Text="&#xF2B7;" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding LanguagePair}" VerticalAlignment="Center" Style="{StaticResource BodyText}" />
+                </StackPanel>
+            </Button>
+
+            <!-- Device -->
+            <Button Style="{StaticResource ChipButton}" Command="{Binding OpenSettingsCommand}" Height="34" Margin="6,0,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="{StaticResource Icons}" Text="&#xEC4A;" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding DeviceName}" VerticalAlignment="Center" Style="{StaticResource CaptionText}"
+                               MaxWidth="150" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Button>
+
+            <!-- Live metrics (only while running) -->
+            <StackPanel Margin="10,0,2,0" VerticalAlignment="Center"
+                        Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding LatencyText}" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding CacheText}" Style="{StaticResource MicroText}" />
+            </StackPanel>
+
+            <Rectangle Width="1" Height="22" Fill="{StaticResource BorderBrush}" Margin="10,0" />
+
+            <!-- Window controls -->
+            <Button Style="{StaticResource IconButton}" Command="{Binding OpenSettingsCommand}" ToolTip="Settings" Content="&#xE713;" />
+            <Button Style="{StaticResource IconButton}" Click="OnMinimize" ToolTip="Minimize" Content="&#xE921;" />
+            <Button Style="{StaticResource IconButton}" Click="OnClose" ToolTip="Exit" Content="&#xE8BB;" />
+        </StackPanel>
+    </Border>
+</Window>

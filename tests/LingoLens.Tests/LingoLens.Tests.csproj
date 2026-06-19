@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <RootNamespace>LingoLens.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\LingoLens.Core\LingoLens.Core.csproj" />
+    <ProjectReference Include="..\..\src\LingoLens.Compute\LingoLens.Compute.csproj" />
+    <ProjectReference Include="..\..\src\LingoLens.Pipeline\LingoLens.Pipeline.csproj" />
+    <ProjectReference Include="..\..\src\LingoLens.Translation\LingoLens.Translation.csproj" />
+    <ProjectReference Include="..\..\src\LingoLens.Overlay\LingoLens.Overlay.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+</Project>

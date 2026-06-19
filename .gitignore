@@ -1,0 +1,42 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+artifacts/
+publish/
+TestResults/
+*.binlog
+
+# Rider / VS Code
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+
+# Models & large assets (downloaded on first run / not committed)
+models/
+*.onnx
+*.gguf
+*.bin
+*.safetensors
+!**/model-manifest*.json
+
+# Python PoC
+tools/poc/.venv/
+tools/poc/__pycache__/
+*.pyc
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Local config / secrets
+*.local.json
+appsettings.Development.json
+
+# Internal working notes (not published)
+PROGRESS.md

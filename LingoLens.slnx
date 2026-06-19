@@ -1,0 +1,31 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LingoLens.App/LingoLens.App.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/LingoLens.Capture/LingoLens.Capture.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/LingoLens.Compute/LingoLens.Compute.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/LingoLens.Core/LingoLens.Core.csproj" />
+    <Project Path="src/LingoLens.Ocr/LingoLens.Ocr.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/LingoLens.Overlay/LingoLens.Overlay.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/LingoLens.Pipeline/LingoLens.Pipeline.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/LingoLens.Translation/LingoLens.Translation.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LingoLens.Tests/LingoLens.Tests.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+</Solution>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>LingoLens.Translation</RootNamespace>
+    <Description>Translation backends (Qwen3 via LLamaSharp, Opus-MT via ONNX Runtime), cache+glossary service, and model repository.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LingoLens.Core\LingoLens.Core.csproj" />
+    <ProjectReference Include="..\LingoLens.Compute\LingoLens.Compute.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
+    <PackageReference Include="LLamaSharp" />
+  </ItemGroup>
+
+</Project>

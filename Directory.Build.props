@@ -1,0 +1,24 @@
+<Project>
+  <!-- Shared build settings for all LingoLens projects -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Authors>Amantu Khan</Authors>
+    <Product>LingoLens</Product>
+    <Company>LingoLens</Company>
+    <Copyright>Copyright © 2026 Amantu Khan</Copyright>
+    <Version>0.1.0</Version>
+    <NeutralLanguage>en</NeutralLanguage>
+    <!-- Default platform: x64 (ONNX Runtime native libs, DirectX). -->
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier Condition="'$(IsPackable)' == 'true'">win-x64</RuntimeIdentifier>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!-- Intentional design choices / low-value style noise across the solution. -->
+    <NoWarn>$(NoWarn);CA1805;CA1716;CA1512;CA1510;CA2007;CA1031;CA1308;CA1304;CA1311;CA1062;CA1063;CA1816;CA1815;CA1819;CA1002;CA1034;CA5350;CA5351;CA1707</NoWarn>
+  </PropertyGroup>
+</Project>

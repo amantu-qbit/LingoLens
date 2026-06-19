@@ -1,0 +1,18 @@
+<Window x:Class="LingoLens.App.Views.RegionSelectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Select a region"
+        WindowStyle="None" AllowsTransparency="True" ResizeMode="NoResize"
+        ShowInTaskbar="False" Topmost="True" Cursor="Cross"
+        Background="#40000000">
+
+    <Canvas x:Name="RootCanvas">
+        <Rectangle x:Name="SelectionBox" Visibility="Collapsed"
+                   Stroke="#7C6CF0" StrokeThickness="2" Fill="#207C6CF0" />
+        <Border x:Name="Hint" Background="#CC16161F" CornerRadius="10" Padding="16,10"
+                Canvas.Left="0" Canvas.Top="0">
+            <TextBlock Text="Drag to select a region · Esc to cancel"
+                       Foreground="#F4F4F8" FontFamily="Segoe UI" FontSize="13" />
+        </Border>
+    </Canvas>
+</Window>
