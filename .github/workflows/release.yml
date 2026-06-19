@@ -62,9 +62,11 @@ jobs:
         run: |
           $tag = '${{ steps.ver.outputs.tag }}'
           $zip = '${{ steps.pkg.outputs.zip }}'
-          $pre = if ($tag -match '-') { '--prerelease' } else { '' }
-          if (gh release view $tag 2>$null) {
+          gh release view $tag 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
             gh release upload $tag $zip --clobber
           } else {
-            gh release create $tag $zip --title "LingoLens $tag" --generate-notes $pre
+            $createArgs = @($tag, $zip, '--title', "LingoLens $tag", '--generate-notes')
+            if ($tag -match '-') { $createArgs += '--prerelease' }
+            gh release create @createArgs
           }
