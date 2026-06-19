@@ -247,5 +247,5 @@ LingoLens uses these open models and libraries:
 - **ONNX Runtime**, **LLamaSharp** / llama.cpp, **Vortice.Windows** — inference & rendering.
 
 LingoLens itself is released under the **[MIT License](LICENSE)** — free to use, modify, and
-distribute, including commercially. See [`LICENSE`](LICENSE) for the full text and third-party
-model terms.
+distribute, including commercially. Bundled/downloaded model licenses and attributions are listed
+in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).

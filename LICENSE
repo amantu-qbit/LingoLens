@@ -19,23 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-LingoLens is free for everyone. If you use it commercially, please consider
-supporting development through a donation (see the "Support" section of the
-README) — it is appreciated but not required.
-
----
-
-THIRD-PARTY MODELS & COMPONENTS
-
-LingoLens downloads and uses third-party models at runtime; each retains its own
-license:
-  - PP-OCRv5 / RapidOCR ............ Apache-2.0
-  - Qwen3 (translation) ............ Apache-2.0
-  - Opus-MT / Helsinki-NLP (zh-en)  CC-BY-4.0 (attribution required; translation
-                                    model by the Language Technology Research
-                                    Group at the University of Helsinki — OPUS-MT,
-                                    Tiedemann & Thottingal)
-
-Models under non-commercial terms (e.g. NLLB, CC-BY-NC) and custom terms (e.g.
-Gemma) are intentionally NOT used.
