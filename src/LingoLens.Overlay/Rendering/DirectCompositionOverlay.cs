@@ -561,6 +561,11 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
 
         // Vsync-locked present (syncInterval = 1). Never blocks the inference lane (we're on the UI thread).
         _swapChain!.Present(1, PresentFlags.None);
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("Overlay drew {Count} item(s) into {W}x{H} (first opacity {Op:F2}).",
+                frame.Items.Count, _swapWidth, _swapHeight,
+                frame.Items.Count > 0 ? frame.Items[0].Opacity : 0.0);
     }
 
     private void DrawItem(ID2D1DeviceContext ctx, OverlayItem item, OverlayStyle style,

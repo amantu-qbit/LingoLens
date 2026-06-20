@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Runtime.Versioning;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using LingoLens.Core;
 using LingoLens.Core.Ocr;
@@ -154,7 +155,10 @@ public sealed class WindowsMediaOcrEngine : IOcrEngine
             var box = new RectD(minX + roiOrigin.X, minY + roiOrigin.Y, maxX - minX, maxY - minY);
             results.Add(new DetectedText
             {
-                Text = line.Text,
+                // Windows OCR emits Chinese as space-separated single characters ("波 胆 欧 洲 盘"). Those
+                // spaces wreck SentencePiece tokenization and produce garbage translations, so collapse any
+                // space sitting next to a CJK character before handing the line downstream.
+                Text = CollapseCjkSpaces(line.Text),
                 Box = Quad.FromRect(box),
                 // Windows OCR does not expose per-line confidence; report a neutral-high value so the
                 // pipeline does not over-suppress, and let translation/cache de-dupe noise.
@@ -163,6 +167,26 @@ public sealed class WindowsMediaOcrEngine : IOcrEngine
             });
         }
     }
+
+    /// <summary>Drop spaces that sit next to a CJK ideograph so "波 胆 欧 洲 盘" becomes "波胆欧洲盘".</summary>
+    private static string CollapseCjkSpaces(string s)
+    {
+        if (string.IsNullOrEmpty(s) || s.IndexOf(' ') < 0) return s;
+
+        var sb = new StringBuilder(s.Length);
+        for (int i = 0; i < s.Length; i++)
+        {
+            char c = s[i];
+            bool dropSpace = c == ' '
+                && ((i > 0 && IsCjkIdeograph(s[i - 1])) || (i + 1 < s.Length && IsCjkIdeograph(s[i + 1])));
+            if (!dropSpace) sb.Append(c);
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool IsCjkIdeograph(char ch) =>
+        (ch >= 0x4E00 && ch <= 0x9FFF) || (ch >= 0x3400 && ch <= 0x4DBF) || (ch >= 0xF900 && ch <= 0xFAFF);
 
     /// <summary>
     /// Copies a clamped ROI out of the BGRA frame into a premultiplied BGRA8 <see cref="SoftwareBitmap"/>.
