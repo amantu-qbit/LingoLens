@@ -120,8 +120,9 @@ public sealed class OpusMtTranslator : ITranslator
                     "Detokenized output may be incorrect.", targetSpm);
             }
 
-            // Create the encoder/decoder sessions on the selected accelerator, falling back to CPU if the
-            // GPU execution provider cannot actually load the model (common for Marian graphs on DirectML).
+            // Build the encoder/decoder sessions. Translation is pinned to the CPU execution provider
+            // (see CreateSessions) — this small autoregressive model decodes far faster there than on
+            // DirectML, where per-token GPU dispatch overhead dominated and stalled full-screen frames.
             stage = "loading the model";
             (_encoder, _decoder, _sessionOptions) = CreateSessions(encoderPath, decoderPath);
 
@@ -136,7 +137,8 @@ public sealed class OpusMtTranslator : ITranslator
 
             _ready = true;
             _unavailableReason = null;
-            _logger.LogInformation("Opus-MT translator ready on {Device}.", _devices.Selected.Name);
+            _logger.LogInformation(
+                "Opus-MT translator ready (decoding on CPU; system compute device {Device}).", _devices.Selected.Name);
         }
         catch (Exception ex)
         {
@@ -493,14 +495,17 @@ public sealed class OpusMtTranslator : ITranslator
         code.StartsWith("en-", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Builds the encoder + decoder sessions on the selected device, retrying on a plain CPU provider if
-    /// the accelerated session cannot be created (e.g. DirectML rejecting an op). Returns the live sessions
-    /// and the options object that owns their provider configuration.
+    /// Builds the encoder + decoder sessions on the ORT CPU execution provider. Opus-MT is a small
+    /// autoregressive model and this greedy loop keeps no KV cache, so it issues one full decoder Run per
+    /// output token, re-uploading <c>encoder_hidden_states</c> each step. On DirectML the per-Run GPU
+    /// dispatch and host↔device transfer dwarf the tiny compute and make a screenful of lines take
+    /// minutes; the CPU EP runs these short single-sequence steps with far lower per-call latency and is
+    /// dramatically faster here. OCR and the overlay keep the GPU — only translation is pinned to CPU.
     /// </summary>
     private (InferenceSession encoder, InferenceSession decoder, SessionOptions options) CreateSessions(
         string encoderPath, string decoderPath)
     {
-        var options = OrtSessionFactory.CreateSessionOptions(_devices.Selected, _logger);
+        var options = new SessionOptions { GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL };
         InferenceSession? encoder = null, decoder = null;
         try
         {
@@ -508,29 +513,12 @@ public sealed class OpusMtTranslator : ITranslator
             decoder = new InferenceSession(decoderPath, options);
             return (encoder, decoder, options);
         }
-        catch (Exception ex) when (_devices.Selected.Provider != ExecutionProviderKind.Cpu)
+        catch
         {
             encoder?.Dispose();
             decoder?.Dispose();
             options.Dispose();
-            _logger.LogWarning(ex,
-                "Opus-MT could not load on {Provider}; retrying on CPU.", _devices.Selected.Provider);
-
-            var cpuOptions = new SessionOptions { GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL };
-            try
-            {
-                encoder = new InferenceSession(encoderPath, cpuOptions);
-                decoder = new InferenceSession(decoderPath, cpuOptions);
-                _logger.LogInformation("Opus-MT loaded on CPU after the {Provider} provider failed.", _devices.Selected.Provider);
-                return (encoder, decoder, cpuOptions);
-            }
-            catch
-            {
-                encoder?.Dispose();
-                decoder?.Dispose();
-                cpuOptions.Dispose();
-                throw;
-            }
+            throw;
         }
     }
 
