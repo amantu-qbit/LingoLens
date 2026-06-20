@@ -365,7 +365,13 @@ public sealed class OpusMtTranslator : ITranslator
         // produced token per iteration. We cap on the number of PRODUCED output tokens and also clamp
         // so the decoder input sequence (start token + produced tokens) never exceeds the model's
         // maximum decoder length — that keeps positional embeddings in range across exports.
-        int maxOutputTokens = Math.Max(1, Math.Min(_maxOutputTokens, AbsoluteMaxDecoderLength - 1));
+        // Cap the produced-token budget relative to the source length. A translation is rarely longer
+        // than ~2x its source; without this, a line that never emits EOS runs the full 256-token ceiling,
+        // and because this greedy loop keeps no KV cache, each step re-decodes the whole growing sequence
+        // on DirectML — tens of seconds per line. Bounding to the source length keeps every line to a
+        // handful of decoder runs (the real reason full-screen translation never completed).
+        int lengthCap = srcLen * 2 + 8;
+        int maxOutputTokens = Math.Clamp(Math.Min(_maxOutputTokens, lengthCap), 1, AbsoluteMaxDecoderLength - 1);
         var generated = new List<long>(maxOutputTokens + 1) { _decoderStartId };
         for (int produced = 0; produced < maxOutputTokens; produced++)
         {
@@ -426,11 +432,25 @@ public sealed class OpusMtTranslator : ITranslator
 
     private static int ArgMaxLastStep(Tensor<float> logits)
     {
-        // logits shape: [1, seq, vocab]; take the final position.
+        // logits shape: [1, seq, vocab]; take the final position. The multi-dimensional indexer recomputes
+        // strides on every access, which is wasteful across a ~65k-wide vocab on every decode step — read
+        // the final row straight from the backing buffer when the tensor is dense (it always is here).
         int seq = logits.Dimensions[1];
         int vocab = logits.Dimensions[2];
         int best = 0;
         float bestVal = float.NegativeInfinity;
+
+        if (logits is DenseTensor<float> dense)
+        {
+            ReadOnlySpan<float> row = dense.Buffer.Span.Slice((seq - 1) * vocab, vocab);
+            for (int v = 0; v < vocab; v++)
+            {
+                if (row[v] > bestVal) { bestVal = row[v]; best = v; }
+            }
+
+            return best;
+        }
+
         for (int v = 0; v < vocab; v++)
         {
             float val = logits[0, seq - 1, v];
@@ -440,6 +460,7 @@ public sealed class OpusMtTranslator : ITranslator
                 best = v;
             }
         }
+
         return best;
     }
 
