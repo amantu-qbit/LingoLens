@@ -541,10 +541,10 @@ public sealed class TranslationPipeline : ITranslationPipeline
         try
         {
             // ---- OCR (frame consumed here) ----
-            IReadOnlyList<DetectedText> detections;
+            IReadOnlyList<DetectedText> rawDetections;
             try
             {
-                detections = await timer.MeasureAsync(PipelineStage.Ocr, () =>
+                rawDetections = await timer.MeasureAsync(PipelineStage.Ocr, () =>
                     _ocr.RecognizeAsync(new OcrRequest
                     {
                         Frame = work.Frame,
@@ -559,7 +559,15 @@ public sealed class TranslationPipeline : ITranslationPipeline
                 SafeDispose(work.Frame);
             }
 
-            detections = FilterDetections(detections);
+            IReadOnlyList<DetectedText> detections = FilterDetections(rawDetections);
+
+            // Per-frame chain diagnostics: shows exactly where a "nothing appears" frame breaks down —
+            // OCR found no text, translation returned empty, or no overlay boxes were built.
+            _logger.LogInformation(
+                "Frame OCR: {Raw} raw → {Kept} kept across {Regions} region(s); first line: '{Sample}'.",
+                rawDetections.Count, detections.Count, work.ChangedRegions.Count,
+                rawDetections.Count > 0 ? Short(rawDetections[0].Text) : "(none)");
+
             if (detections.Count == 0)
             {
                 // Settled change produced no usable text → present an empty (stabilized) frame so any
@@ -582,6 +590,24 @@ public sealed class TranslationPipeline : ITranslationPipeline
             // ---- Layout / build overlay frame + temporal smoothing ----
             OverlayFrame overlay = timer.Measure(PipelineStage.Layout, () =>
                 BuildOverlayFrame(detections, translation, sourceBounds, work.CaptureTimestampTicks));
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                int nonEmpty = 0;
+                TranslatedItem? firstShown = null;
+                foreach (TranslatedItem t in translation.Items)
+                {
+                    if (string.IsNullOrEmpty(t.Target)) continue;
+                    nonEmpty++;
+                    firstShown ??= t;
+                }
+
+                _logger.LogInformation(
+                    "Frame translate: {NonEmpty}/{Total} non-empty target(s) → {Boxes} overlay box(es). sample: '{Src}' → '{Tgt}'.",
+                    nonEmpty, translation.Items.Count, overlay.Items.Count,
+                    firstShown is not null ? Short(firstShown.Source) : "(none)",
+                    firstShown is not null ? Short(firstShown.Target) : "(none)");
+            }
 
             PresentStabilized(overlay, timer);
             CommitFrameMetrics(work, hadText: true);
@@ -774,6 +800,9 @@ public sealed class TranslationPipeline : ITranslationPipeline
             if (_paused || cts is null || cts.IsCancellationRequested)
                 return;
 
+            // Confirms the render lane actually reached the compositor with N boxes — distinguishes an
+            // upstream miss (0 boxes built) from a render/visibility problem (boxes presented, none seen).
+            _logger.LogDebug("Presenting {Count} overlay box(es) to the compositor.", stable.Items.Count);
             _renderer.Present(stable);
         }));
     }
@@ -1031,7 +1060,11 @@ public sealed class TranslationPipeline : ITranslationPipeline
         // was picked). Without this the overlay window stays 1×1 at (0,0) and nothing is ever visible.
         RectI overlayBounds = target.Mode == CaptureMode.Region ? target.Region : target.ScreenBounds;
         if (!overlayBounds.IsEmpty)
+        {
+            _logger.LogInformation("Overlay positioned for {Mode} target: {W}x{H} at ({X},{Y}).",
+                target.Mode, overlayBounds.Width, overlayBounds.Height, overlayBounds.X, overlayBounds.Y);
             PostToUi(() => _renderer.SetTargetBounds(overlayBounds, DefaultDpi));
+        }
         else
             _logger.LogWarning(
                 "No on-screen bounds for {Mode} target '{Name}'; overlay cannot be positioned and translations will not be visible.",
@@ -1189,4 +1222,8 @@ public sealed class TranslationPipeline : ITranslationPipeline
         try { d?.Dispose(); }
         catch (Exception ex) { _logger.LogTrace(ex, "Dispose threw (ignored)."); }
     }
+
+    /// <summary>Truncate a possibly-long source/target line for single-line diagnostic logging.</summary>
+    private static string Short(string? s) =>
+        string.IsNullOrEmpty(s) ? "(empty)" : (s.Length <= 60 ? s : s[..60] + "…");
 }

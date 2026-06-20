@@ -85,7 +85,10 @@ public sealed class WindowsMediaOcrEngine : IOcrEngine
     {
         if (_engine is null) return Array.Empty<DetectedText>();
         if (!request.Frame.TryGetCpuPixels(out var bgra, out int stride))
+        {
+            _logger.LogWarning("Windows OCR: could not read CPU pixels from the captured frame; skipping OCR for this frame.");
             return Array.Empty<DetectedText>();
+        }
 
         int frameW = request.Frame.Width;
         int frameH = request.Frame.Height;
@@ -115,6 +118,8 @@ public sealed class WindowsMediaOcrEngine : IOcrEngine
             AppendLines(ocr, clamped, results);
         }
 
+        _logger.LogDebug("Windows OCR: recognized {Lines} line(s) across {Rois} ROI(s) on a {W}x{H} frame.",
+            results.Count, rois.Count, frameW, frameH);
         return results;
     }
 
