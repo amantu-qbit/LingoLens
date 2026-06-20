@@ -112,9 +112,10 @@ public sealed class OpusMtTranslator : ITranslator
                     "Detokenized output may be incorrect.", targetSpm);
             }
 
-            _sessionOptions = OrtSessionFactory.CreateSessionOptions(_devices.Selected, _logger);
-            _encoder = new InferenceSession(encoderPath, _sessionOptions);
-            _decoder = new InferenceSession(decoderPath, _sessionOptions);
+            // Create the encoder/decoder sessions on the selected accelerator, falling back to CPU if the
+            // GPU execution provider cannot actually load the model (common for Marian graphs on DirectML).
+            // Without this the translator silently goes unavailable and the overlay shows nothing.
+            (_encoder, _decoder, _sessionOptions) = CreateSessions(encoderPath, decoderPath);
 
             // The merged decoder exposes a boolean 'use_cache_branch' selector; detect it so we can
             // explicitly pick the no-past-cache branch this greedy decoder relies on.
@@ -455,6 +456,48 @@ public sealed class OpusMtTranslator : ITranslator
     private static bool IsEnglish(string code) =>
         code.Equals("en", StringComparison.OrdinalIgnoreCase) ||
         code.StartsWith("en-", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Builds the encoder + decoder sessions on the selected device, retrying on a plain CPU provider if
+    /// the accelerated session cannot be created (e.g. DirectML rejecting an op). Returns the live sessions
+    /// and the options object that owns their provider configuration.
+    /// </summary>
+    private (InferenceSession encoder, InferenceSession decoder, SessionOptions options) CreateSessions(
+        string encoderPath, string decoderPath)
+    {
+        var options = OrtSessionFactory.CreateSessionOptions(_devices.Selected, _logger);
+        InferenceSession? encoder = null, decoder = null;
+        try
+        {
+            encoder = new InferenceSession(encoderPath, options);
+            decoder = new InferenceSession(decoderPath, options);
+            return (encoder, decoder, options);
+        }
+        catch (Exception ex) when (_devices.Selected.Provider != ExecutionProviderKind.Cpu)
+        {
+            encoder?.Dispose();
+            decoder?.Dispose();
+            options.Dispose();
+            _logger.LogWarning(ex,
+                "Opus-MT could not load on {Provider}; retrying on CPU.", _devices.Selected.Provider);
+
+            var cpuOptions = new SessionOptions { GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL };
+            try
+            {
+                encoder = new InferenceSession(encoderPath, cpuOptions);
+                decoder = new InferenceSession(decoderPath, cpuOptions);
+                _logger.LogInformation("Opus-MT loaded on CPU after the {Provider} provider failed.", _devices.Selected.Provider);
+                return (encoder, decoder, cpuOptions);
+            }
+            catch
+            {
+                encoder?.Dispose();
+                decoder?.Dispose();
+                cpuOptions.Dispose();
+                throw;
+            }
+        }
+    }
 
     private void DisposeSessions()
     {
