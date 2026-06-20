@@ -209,10 +209,11 @@ public sealed class ExponentialOverlayStabilizer : IOverlayStabilizer
 
             if (stillIncoming)
             {
-                double targetOpacity = track.IncomingOpacity;
-                double age = TicksToMs(now - track.FirstSeenTicks);
-                double fadeIn = fadeMs <= 0 ? 1.0 : Math.Clamp(age / fadeMs, 0.0, 1.0);
-                computedOpacity = targetOpacity * fadeIn;
+                // Appear at full target opacity on the very first frame. A time-based fade-in only completes
+                // if the overlay keeps re-rendering, but on a static screen exactly one frame is ever
+                // presented — so the old age/fadeMs ramp left freshly translated text pinned near 0 opacity
+                // (the boxes were drawn, but DrawItem skips anything <=0.001, so nothing was visible).
+                computedOpacity = track.IncomingOpacity;
             }
             else
             {

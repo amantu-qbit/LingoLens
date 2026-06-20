@@ -381,6 +381,9 @@ public sealed class OpusMtTranslator : ITranslator
             int nextId = DecodeStep(encoderHidden.AsTensor<float>(), attentionMask, generated);
             if (nextId == _eosId) break;
             generated.Add(nextId);
+            // Stop degenerate greedy loops early ("were were were…" / "A B A B…"). They otherwise run to the
+            // length cap, producing repeated garbage and burning decode time; cutting them short fixes both.
+            if (IsDegenerateTail(generated)) break;
             // Defensive: never grow the decoder input beyond the model's hard length limit.
             if (generated.Count >= AbsoluteMaxDecoderLength) break;
         }
@@ -390,6 +393,19 @@ public sealed class OpusMtTranslator : ITranslator
             ? generated.Skip(1).Select(static x => (int)x)
             : Enumerable.Empty<int>();
         return _targetTokenizer!.Decode(outIds).Trim();
+    }
+
+    /// <summary>True when the decoded tail collapsed into a short repeating cycle (greedy degeneration).</summary>
+    private static bool IsDegenerateTail(List<long> g)
+    {
+        int n = g.Count;
+        // period-1: the last 4 produced tokens are identical ("were were were were").
+        if (n >= 5 && g[n - 1] == g[n - 2] && g[n - 2] == g[n - 3] && g[n - 3] == g[n - 4]) return true;
+        // period-2: the last 6 tokens repeat an "A B" pair three times.
+        if (n >= 7 && g[n - 1] == g[n - 3] && g[n - 3] == g[n - 5] && g[n - 2] == g[n - 4] && g[n - 4] == g[n - 6]) return true;
+        // period-3: the last 6 tokens repeat an "A B C" triple twice.
+        if (n >= 7 && g[n - 1] == g[n - 4] && g[n - 2] == g[n - 5] && g[n - 3] == g[n - 6]) return true;
+        return false;
     }
 
     private IDisposableReadOnlyCollection<DisposableNamedOnnxValue> RunEncoder(
