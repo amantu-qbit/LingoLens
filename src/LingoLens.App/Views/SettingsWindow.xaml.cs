@@ -14,7 +14,11 @@ public partial class SettingsWindow : Window
 
     private void OnDrag(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton == MouseButton.Left) DragMove();
+        // Drag the window from any empty area of its chrome. Interactive controls handle their own mouse
+        // input, so this only fires for clicks on the background, labels and section spacing.
+        if (e.ButtonState != MouseButtonState.Pressed || e.ChangedButton != MouseButton.Left) return;
+        try { DragMove(); }
+        catch { /* DragMove throws if the button was already released; ignore */ }
     }
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();

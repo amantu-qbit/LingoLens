@@ -10,7 +10,7 @@
     <Product>LingoLens</Product>
     <Company>LingoLens</Company>
     <Copyright>Copyright © 2026 Amantu Khan</Copyright>
-    <Version>0.1.7</Version>
+    <Version>0.1.8</Version>
     <NeutralLanguage>en</NeutralLanguage>
     <!-- Default platform: x64 (ONNX Runtime native libs, DirectX). -->
     <Platforms>x64</Platforms>
