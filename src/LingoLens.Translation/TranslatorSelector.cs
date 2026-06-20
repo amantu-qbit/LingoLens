@@ -124,7 +124,6 @@ public sealed class TranslatorSelector : ITranslator
     private async Task<ITranslator> ChooseInnerAsync(CancellationToken ct)
     {
         string engine = (_options.Engine ?? "auto").Trim().ToLowerInvariant();
-        ModelTier tier = _devices.RecommendedTier;
 
         // Initialize lazily, only the candidate(s) we might use, to avoid loading both LLM + NMT.
         switch (engine)
@@ -142,22 +141,25 @@ public sealed class TranslatorSelector : ITranslator
                 return _opus; // ready or not, OpusMt is the documented fallback
 
             default: // "auto"
-                bool preferQwen = tier is ModelTier.Quality or ModelTier.Balanced;
-                if (preferQwen)
+                // Opus-MT is the fast, reliable specialist for the headline zh→en path, so prefer it
+                // whenever it covers the configured pair. Only reach for the heavier Qwen LLM for pairs
+                // Opus can't handle — which also keeps the common path working even without a llama.cpp
+                // backend (Qwen stays unavailable until one is installed).
+                bool opusCoversPair = _opus.Supports(_options.Pair);
+                if (opusCoversPair)
                 {
-                    await _qwen.InitializeAsync(ct).ConfigureAwait(false);
-                    if (_qwen.IsReady) return _qwen;
+                    await _opus.InitializeAsync(ct).ConfigureAwait(false);
+                    if (_opus.IsReady) return _opus;
                 }
-                await _opus.InitializeAsync(ct).ConfigureAwait(false);
-                if (_opus.IsReady) return _opus;
 
-                // Last resort on Light tier or when Opus is unavailable: try Qwen if not already.
-                if (!preferQwen)
-                {
-                    await _qwen.InitializeAsync(ct).ConfigureAwait(false);
-                    if (_qwen.IsReady) return _qwen;
-                }
-                return _opus; // not ready, but a valid object the pipeline can probe via IsReady
+                await _qwen.InitializeAsync(ct).ConfigureAwait(false);
+                if (_qwen.IsReady) return _qwen;
+
+                // Neither preferred path is ready: make sure Opus has at least been attempted so the
+                // pipeline can probe it via IsReady.
+                if (!opusCoversPair)
+                    await _opus.InitializeAsync(ct).ConfigureAwait(false);
+                return _opus;
         }
     }
 

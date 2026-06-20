@@ -18,7 +18,8 @@
     </Window.Resources>
 
     <Border Margin="16" CornerRadius="16" Background="{StaticResource BackgroundBrush}"
-            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            MouseLeftButtonDown="OnDrag">
         <Border.Effect>
             <DropShadowEffect BlurRadius="34" ShadowDepth="2" Opacity="0.55" Color="Black" />
         </Border.Effect>
@@ -31,7 +32,7 @@
             </Grid.RowDefinitions>
 
             <!-- Title bar -->
-            <Grid Grid.Row="0" Height="62" MouseLeftButtonDown="OnDrag">
+            <Grid Grid.Row="0" Height="62">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
                     <Grid Width="24" Height="24" Margin="0,0,12,0">
                         <Ellipse Stroke="{StaticResource AccentBrush}" StrokeThickness="2" />
