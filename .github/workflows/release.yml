@@ -46,8 +46,13 @@ jobs:
             if (-not $m) { throw 'Could not find <Version> in Directory.Build.props.' }
             $ver = $m.Matches[0].Groups[1].Value.Trim()
             $tag = "v$ver"
-            gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null | Out-Null
+            # gh release view exits non-zero when the release doesn't exist yet. Capture that result, then
+            # clear $LASTEXITCODE — otherwise the runner's trailing `exit $LASTEXITCODE` fails this step
+            # (this is why merge-triggered releases failed while manual tag pushes, which skip this branch,
+            # worked).
+            gh release view $tag --repo $env:GITHUB_REPOSITORY 1>$null 2>$null
             $should = if ($LASTEXITCODE -eq 0) { 'false' } else { 'true' }
+            $global:LASTEXITCODE = 0
           }
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "should_release=$should" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -63,6 +68,7 @@ jobs:
         if: steps.ver.outputs.should_release == 'true'
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           dotnet publish src/LingoLens.App/LingoLens.App.csproj `
             -c Release -r win-x64 --self-contained true `
             -p:PublishSingleFile=true `
@@ -70,6 +76,9 @@ jobs:
             -p:EnableCompressionInSingleFile=true `
             -p:DebugType=none `
             -o publish/out
+          # Fail fast on a compile error. Without this the script kept going and tripped on the LICENSE
+          # copy below, hiding the real build error behind a confusing "path not found".
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed (exit $LASTEXITCODE) - see build errors above." }
           Remove-Item publish/out/*.pdb, publish/out/*.lib -Force -ErrorAction SilentlyContinue
           Copy-Item LICENSE publish/out/LICENSE.txt -Force
 

@@ -461,7 +461,7 @@ public sealed class OpusMtTranslator : ITranslator
         // Microsoft.ML.Tokenizers 2.0.0) loads both Unigram and BPE models; LlamaTokenizer.Create accepted
         // BPE only and threw "The model type is not Bpe." on Marian's unigram model — the bug that kept this
         // translator permanently unavailable. Marian tokenizers add EOS but not BOS.
-        return SentencePieceTokenizer.Create(stream, addBeginOfSentence: false, addEndOfSentence: true);
+        return SentencePieceTokenizer.Create(stream, addBeginningOfSentence: false, addEndOfSentence: true);
     }
 
     private static string Short(string? s) =>
