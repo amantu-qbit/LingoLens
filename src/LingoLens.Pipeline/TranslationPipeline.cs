@@ -29,6 +29,7 @@ public sealed class TranslationPipeline : ITranslationPipeline
     private const int LatencyWindowSamples = 120;
     private const double MetricsIntervalMs = 250; // ~4 Hz
     private const double MinFpsSampleDeltaMs = 1.0; // ignore sub-ms inter-frame deltas (see TryFpsSample)
+    private const int MaxLinesPerFrame = 60; // safety cap on lines fed to the sequential NMT decoder per frame
 
     private readonly ICaptureSourceFactory _captureFactory;
     private readonly IChangeDetector _changeDetector;
@@ -562,15 +563,18 @@ public sealed class TranslationPipeline : ITranslationPipeline
             IReadOnlyList<DetectedText> kept = FilterDetections(rawDetections);
             // For a CJK source, only translate lines that actually contain source-script characters. A
             // full-screen capture is dominated by UI chrome in the user's own language ("Search", "chats");
-            // translating every line floods the slow NMT decoder and is wrong for a zh→en model anyway.
-            IReadOnlyList<DetectedText> detections = FilterToSourceScript(kept, Languages);
+            // translating every line floods the sequential NMT decoder and is wrong for a zh→en model anyway.
+            IReadOnlyList<DetectedText> translatable = FilterToSourceScript(kept, Languages);
+            // Safety valve: bound how many lines one frame pushes through the sequential decoder so a busy
+            // full-screen capture can't stall the overlay. Region mode stays well under this.
+            IReadOnlyList<DetectedText> detections = CapCount(translatable, MaxLinesPerFrame);
 
             // Per-frame chain diagnostics: shows exactly where a "nothing appears" frame breaks down —
             // OCR found no text, nothing was in the source language, translation was empty, or no boxes built.
             _logger.LogInformation(
                 "Frame OCR: {Raw} raw → {Kept} kept → {Translatable} translatable across {Regions} region(s); first: '{Sample}'.",
-                rawDetections.Count, kept.Count, detections.Count, work.ChangedRegions.Count,
-                detections.Count > 0 ? Short(detections[0].Text)
+                rawDetections.Count, kept.Count, translatable.Count, work.ChangedRegions.Count,
+                translatable.Count > 0 ? Short(translatable[0].Text)
                     : (rawDetections.Count > 0 ? Short(rawDetections[0].Text) : "(none)"));
 
             if (detections.Count == 0)
@@ -589,8 +593,10 @@ public sealed class TranslationPipeline : ITranslationPipeline
 
             // ---- Translate (cache + glossary applied) ----
             LanguagePair pair = Languages;
+            long translateStart = Stopwatch.GetTimestamp();
             TranslationResult translation = await timer.MeasureAsync(PipelineStage.Translate, () =>
                 TranslateAsync(detections, pair, ct)).ConfigureAwait(false);
+            double translateMs = Stopwatch.GetElapsedTime(translateStart).TotalMilliseconds;
 
             // ---- Layout / build overlay frame + temporal smoothing ----
             OverlayFrame overlay = timer.Measure(PipelineStage.Layout, () =>
@@ -608,8 +614,8 @@ public sealed class TranslationPipeline : ITranslationPipeline
                 }
 
                 _logger.LogInformation(
-                    "Frame translate: {NonEmpty}/{Total} non-empty target(s) → {Boxes} overlay box(es). sample: '{Src}' → '{Tgt}'.",
-                    nonEmpty, translation.Items.Count, overlay.Items.Count,
+                    "Frame translate: {NonEmpty}/{Total} non-empty target(s) → {Boxes} overlay box(es) in {Ms:F0} ms. sample: '{Src}' → '{Tgt}'.",
+                    nonEmpty, translation.Items.Count, overlay.Items.Count, translateMs,
                     firstShown is not null ? Short(firstShown.Source) : "(none)",
                     firstShown is not null ? Short(firstShown.Target) : "(none)");
             }
@@ -668,6 +674,15 @@ public sealed class TranslationPipeline : ITranslationPipeline
     private static bool IsHanSource(string source) =>
         source.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ||
         source.StartsWith("ja", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Keep at most <paramref name="max"/> items (cheap, allocation-free when already small).</summary>
+    private static IReadOnlyList<DetectedText> CapCount(IReadOnlyList<DetectedText> items, int max)
+    {
+        if (items.Count <= max) return items;
+        var capped = new List<DetectedText>(max);
+        for (int i = 0; i < max; i++) capped.Add(items[i]);
+        return capped;
+    }
 
     /// <summary>True if the text contains a CJK ideograph (covers the vast majority of real zh text).</summary>
     private static bool ContainsHan(string s)
