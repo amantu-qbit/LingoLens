@@ -559,14 +559,19 @@ public sealed class TranslationPipeline : ITranslationPipeline
                 SafeDispose(work.Frame);
             }
 
-            IReadOnlyList<DetectedText> detections = FilterDetections(rawDetections);
+            IReadOnlyList<DetectedText> kept = FilterDetections(rawDetections);
+            // For a CJK source, only translate lines that actually contain source-script characters. A
+            // full-screen capture is dominated by UI chrome in the user's own language ("Search", "chats");
+            // translating every line floods the slow NMT decoder and is wrong for a zh→en model anyway.
+            IReadOnlyList<DetectedText> detections = FilterToSourceScript(kept, Languages);
 
             // Per-frame chain diagnostics: shows exactly where a "nothing appears" frame breaks down —
-            // OCR found no text, translation returned empty, or no overlay boxes were built.
+            // OCR found no text, nothing was in the source language, translation was empty, or no boxes built.
             _logger.LogInformation(
-                "Frame OCR: {Raw} raw → {Kept} kept across {Regions} region(s); first line: '{Sample}'.",
-                rawDetections.Count, detections.Count, work.ChangedRegions.Count,
-                rawDetections.Count > 0 ? Short(rawDetections[0].Text) : "(none)");
+                "Frame OCR: {Raw} raw → {Kept} kept → {Translatable} translatable across {Regions} region(s); first: '{Sample}'.",
+                rawDetections.Count, kept.Count, detections.Count, work.ChangedRegions.Count,
+                detections.Count > 0 ? Short(detections[0].Text)
+                    : (rawDetections.Count > 0 ? Short(rawDetections[0].Text) : "(none)"));
 
             if (detections.Count == 0)
             {
@@ -638,6 +643,43 @@ public sealed class TranslationPipeline : ITranslationPipeline
         }
 
         return (IReadOnlyList<DetectedText>?)kept ?? Array.Empty<DetectedText>();
+    }
+
+    /// <summary>
+    /// When the source language is CJK (zh / ja), keep only lines that contain at least one Han
+    /// character. This skips the user's own-language UI chrome that a full-screen capture is full of,
+    /// which both fixes throughput (the slow NMT decoder isn't flooded) and avoids mistranslating
+    /// non-source text. For non-CJK / "auto" sources we cannot cheaply tell, so we keep every line.
+    /// </summary>
+    private static IReadOnlyList<DetectedText> FilterToSourceScript(IReadOnlyList<DetectedText> detections, LanguagePair pair)
+    {
+        if (detections.Count == 0 || !IsHanSource(pair.Source)) return detections;
+
+        List<DetectedText>? kept = null;
+        foreach (DetectedText d in detections)
+        {
+            if (!ContainsHan(d.Text)) continue;
+            (kept ??= new List<DetectedText>(detections.Count)).Add(d);
+        }
+
+        return (IReadOnlyList<DetectedText>?)kept ?? Array.Empty<DetectedText>();
+    }
+
+    private static bool IsHanSource(string source) =>
+        source.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ||
+        source.StartsWith("ja", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True if the text contains a CJK ideograph (covers the vast majority of real zh text).</summary>
+    private static bool ContainsHan(string s)
+    {
+        foreach (char ch in s)
+        {
+            if (ch >= 0x4E00 && ch <= 0x9FFF) return true; // CJK Unified Ideographs
+            if (ch >= 0x3400 && ch <= 0x4DBF) return true; // CJK Extension A
+            if (ch >= 0xF900 && ch <= 0xFAFF) return true; // CJK Compatibility Ideographs
+        }
+
+        return false;
     }
 
     /// <summary>
