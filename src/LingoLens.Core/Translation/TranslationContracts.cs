@@ -45,6 +45,12 @@ public interface ITranslator : IAsyncDisposable
     string Name { get; }
     bool IsReady { get; }
 
+    /// <summary>
+    /// Human-readable reason this translator is not ready (model missing, failed to load, …), or null
+    /// when it is ready or the reason is unknown. Surfaced to the user so failures aren't silent.
+    /// </summary>
+    string? UnavailableReason => null;
+
     /// <summary>Whether this translator can handle the pair (some are zh→en only).</summary>
     bool Supports(LanguagePair pair);
 

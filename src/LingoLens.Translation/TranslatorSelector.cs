@@ -58,6 +58,10 @@ public sealed class TranslatorSelector : ITranslator
     public bool IsReady => _active?.IsReady ?? false;
 
     /// <inheritdoc />
+    public string? UnavailableReason =>
+        IsReady ? null : (_activeInner?.UnavailableReason ?? _opus.UnavailableReason);
+
+    /// <inheritdoc />
     public bool Supports(LanguagePair pair) => _qwen.Supports(pair) || _opus.Supports(pair);
 
     /// <inheritdoc />
