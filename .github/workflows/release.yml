@@ -1,15 +1,18 @@
 name: release
 
-# Tag a commit (e.g. `git tag v0.1.1 && git push origin v0.1.1`) and this builds the
-# self-contained Windows binary and publishes it as a GitHub Release automatically.
+# Two ways to publish the Windows binary as a GitHub Release:
+#   1. Push a version tag:  git tag v0.1.7 && git push origin v0.1.7
+#   2. Just bump <Version> in Directory.Build.props and merge to main — this workflow reads the version
+#      and, if no release exists for it yet, builds and publishes v<version> automatically.
 
 on:
   push:
+    branches: [ main, master ]
     tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (must already exist), e.g. v0.1.1'
+        description: 'Tag to release, e.g. v0.1.7'
         required: true
 
 permissions:
@@ -21,19 +24,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $event = '${{ github.event_name }}'
+          $ref   = '${{ github.ref }}'
+          if ($event -eq 'workflow_dispatch') {
+            $tag = '${{ github.event.inputs.tag }}'
+            $should = 'true'
+          }
+          elseif ($ref -like 'refs/tags/*') {
+            $tag = '${{ github.ref_name }}'
+            $should = 'true'
+          }
+          else {
+            # Push to main/master: derive the tag from the project version and only release it once.
+            $m = Select-String -Path Directory.Build.props -Pattern '<Version>\s*([^<]+?)\s*</Version>' | Select-Object -First 1
+            if (-not $m) { throw 'Could not find <Version> in Directory.Build.props.' }
+            $ver = $m.Matches[0].Groups[1].Value.Trim()
+            $tag = "v$ver"
+            gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null | Out-Null
+            $should = if ($LASTEXITCODE -eq 0) { 'false' } else { 'true' }
+          }
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "should_release=$should" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "event=$event tag=$tag should_release=$should"
+
       - name: Setup .NET
+        if: steps.ver.outputs.should_release == 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
-      - name: Resolve version
-        id: ver
-        shell: pwsh
-        run: |
-          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ github.event.inputs.tag }}' } else { '${{ github.ref_name }}' }
-          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
       - name: Publish self-contained single-file
+        if: steps.ver.outputs.should_release == 'true'
         shell: pwsh
         run: |
           dotnet publish src/LingoLens.App/LingoLens.App.csproj `
@@ -48,6 +75,7 @@ jobs:
 
       - name: Package
         id: pkg
+        if: steps.ver.outputs.should_release == 'true'
         shell: pwsh
         run: |
           $tag = '${{ steps.ver.outputs.tag }}'
@@ -56,6 +84,7 @@ jobs:
           "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Publish GitHub Release
+        if: steps.ver.outputs.should_release == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
