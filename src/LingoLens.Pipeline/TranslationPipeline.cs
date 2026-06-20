@@ -1014,21 +1014,16 @@ public sealed class TranslationPipeline : ITranslationPipeline
     {
         _renderer.Style = _options.Overlay.ToStyle();
 
-        // TODO(verify-on-hardware): for Window mode the precise client bounds + DPI come from the
-        // capturer/Win32 (GetWindowRect / per-monitor DPI). The pipeline keeps this simple and lets the
-        // App's window-follow hook drive subsequent SetTargetBounds calls. We seed a zero rect so the
-        // overlay exists; the first follow event will reposition it.
-        switch (target.Mode)
-        {
-            case CaptureMode.Region when !target.Region.IsEmpty:
-                PostToUi(() => _renderer.SetTargetBounds(target.Region, DefaultDpi));
-                break;
-            case CaptureMode.Window:
-            case CaptureMode.Monitor:
-            default:
-                // Bounds will be supplied by the host's follow logic; nothing precise to do here.
-                break;
-        }
+        // Position the overlay over the target. Region targets carry their rect in Region; Monitor and
+        // Window targets carry their on-screen rect in ScreenBounds (resolved by the App when the target
+        // was picked). Without this the overlay window stays 1×1 at (0,0) and nothing is ever visible.
+        RectI overlayBounds = target.Mode == CaptureMode.Region ? target.Region : target.ScreenBounds;
+        if (!overlayBounds.IsEmpty)
+            PostToUi(() => _renderer.SetTargetBounds(overlayBounds, DefaultDpi));
+        else
+            _logger.LogWarning(
+                "No on-screen bounds for {Mode} target '{Name}'; overlay cannot be positioned and translations will not be visible.",
+                target.Mode, target.DisplayName ?? "(unnamed)");
     }
 
     private const double DefaultDpi = 96.0;

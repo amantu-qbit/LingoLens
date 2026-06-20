@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Choose a target"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        Width="520" Height="600" WindowStartupLocation="CenterOwner"
+        Width="540" Height="628" WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize" UseLayoutRounding="True">
 
     <Border Margin="14" CornerRadius="16" Background="{StaticResource BackgroundBrush}"
@@ -31,7 +31,7 @@
             <TextBlock Grid.Row="1" Text="OPEN WINDOWS" Style="{StaticResource SectionHeader}" Margin="22,2,0,8" />
 
             <!-- Windows list -->
-            <Border Grid.Row="2" Margin="18,0,18,0" CornerRadius="12" Background="{StaticResource SurfaceBrush}"
+            <Border Grid.Row="2" Margin="22,0,22,0" CornerRadius="12" Background="{StaticResource SurfaceBrush}"
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                 <ListBox x:Name="WindowsList" Background="Transparent" BorderThickness="0" Margin="6"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -71,7 +71,7 @@
             </Border>
 
             <!-- Footer: monitor + region + actions -->
-            <StackPanel Grid.Row="3" Margin="18,14,18,18">
+            <StackPanel Grid.Row="3" Margin="22,18,22,22">
                 <TextBlock Text="OR CAPTURE" Style="{StaticResource SectionHeader}" Margin="0,0,0,8" />
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -84,7 +84,7 @@
                     <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="Draw region…" Click="OnDrawRegion" />
                 </Grid>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
                     <Button Style="{StaticResource GhostButton}" Content="Cancel" Click="OnCancel" Margin="0,0,8,0" />
                     <Button Style="{StaticResource PrimaryButton}" Content="Translate this window" Click="OnUseWindow" />
                 </StackPanel>

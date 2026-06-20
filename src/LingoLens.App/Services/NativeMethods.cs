@@ -9,6 +9,7 @@ internal static class NativeMethods
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_TOOLWINDOW = 0x00000080;
     public const int DWMWA_CLOAKED = 14;
+    public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
     public const int MONITORINFOF_PRIMARY = 1;
 
     public const int MDT_EFFECTIVE_DPI = 0;
@@ -34,8 +35,15 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(nint hWnd, out uint processId);
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetWindowRect(nint hWnd, out RECT rect);
+
     [DllImport("dwmapi.dll")]
     public static extern int DwmGetWindowAttribute(nint hWnd, int attr, out int value, int size);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmGetWindowAttribute(nint hWnd, int attr, out RECT value, int size);
 
     [DllImport("user32.dll")]
     public static extern bool EnumDisplayMonitors(nint hdc, nint clip, MonitorEnumProc callback, nint data);

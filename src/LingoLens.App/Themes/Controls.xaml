@@ -203,7 +203,10 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <ContentPresenter Grid.Column="0" Margin="12,0" VerticalAlignment="Center"
-                                                              Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}" />
+                                                              TextElement.Foreground="{StaticResource TextPrimaryBrush}"
+                                                              TextBlock.Foreground="{StaticResource TextPrimaryBrush}"
+                                                              Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                              ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}" />
                                             <TextBlock Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Center"
                                                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
                                                        Foreground="{StaticResource TextTertiaryBrush}" Text="&#xE70D;" />
