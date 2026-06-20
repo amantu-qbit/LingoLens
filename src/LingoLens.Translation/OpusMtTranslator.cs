@@ -460,9 +460,11 @@ public sealed class OpusMtTranslator : ITranslator
         // Opus-MT / Marian ships a *Unigram* SentencePiece model. Use the general SentencePieceTokenizer
         // factory, which supports both Unigram and BPE models. LlamaTokenizer.Create accepts BPE only and
         // throws "The model type is not Bpe." on Marian's unigram model — the bug that kept this translator
-        // permanently unavailable. Marian tokenizers add EOS but not BOS.
-        return SentencePieceTokenizer.Create(
-            stream, addBeginOfSentence: false, addEndOfSentence: true, specialTokens: null);
+        // permanently unavailable.
+        // Args are positional to avoid the param-name mismatch with LlamaTokenizer.Create:
+        //   (modelStream, addBeginningOfSentence: false, addEndOfSentence: true, specialTokens: null).
+        // Marian tokenizers add EOS but not BOS.
+        return SentencePieceTokenizer.Create(stream, false, true, null);
     }
 
     private static string Short(string? s) =>
