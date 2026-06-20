@@ -63,13 +63,24 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _latencyText = "—";
     [ObservableProperty] private string _cacheText = "";
     [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private bool _hasIssue;
     [ObservableProperty] private bool _isDownloading;
     [ObservableProperty] private string _downloadStatus = "";
     [ObservableProperty] private double _downloadProgress;
 
     public string RunLabel => IsRunning ? "Stop" : "Translate";
 
-    partial void OnIsRunningChanged(bool value) => OnPropertyChanged(nameof(RunLabel));
+    /// <summary>Show the live latency/cache readout only when running cleanly (no issue, no download).</summary>
+    public bool ShowTelemetry => IsRunning && !HasIssue && !IsDownloading;
+
+    partial void OnIsRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(RunLabel));
+        OnPropertyChanged(nameof(ShowTelemetry));
+    }
+
+    partial void OnHasIssueChanged(bool value) => OnPropertyChanged(nameof(ShowTelemetry));
+    partial void OnIsDownloadingChanged(bool value) => OnPropertyChanged(nameof(ShowTelemetry));
 
     [RelayCommand]
     private async Task ToggleRunAsync()
@@ -202,12 +213,15 @@ public sealed partial class MainViewModel : ObservableObject
         IsRunning = e.State is PipelineState.Running or PipelineState.Starting;
         StatusText = e.State switch
         {
-            PipelineState.Running => "Translating",
+            PipelineState.Running => e.Message ?? "Translating",
             PipelineState.Starting => "Starting…",
             PipelineState.Paused => "Paused",
             PipelineState.Error => e.Message ?? "Error",
             _ => "Ready",
         };
+        // A non-null message while Running (or any Error) means something needs the user's attention —
+        // surfaced prominently in the HUD instead of failing silently.
+        HasIssue = e.State == PipelineState.Error || (e.State == PipelineState.Running && e.Message is not null);
     });
 
     private void OnMetricsUpdated(object? sender, PipelineMetricsEventArgs e) => Post(() =>

@@ -215,6 +215,13 @@ public sealed class TranslationPipeline : ITranslationPipeline
                 _logger.LogInformation(
                     "Pipeline started for {Mode} target '{Name}' ({Pair}) on device {Device}.",
                     target.Mode, target.DisplayName ?? "(unnamed)", Languages, _devices.Selected.Name);
+
+                // Surface a degraded state so the HUD explains why nothing appears, instead of running
+                // silently with no overlay.
+                if (!_translator.IsReady)
+                    SetState(PipelineState.Running, "No translation model is ready — open Settings ▸ Models to download one.");
+                else if (!_ocr.IsReady)
+                    SetState(PipelineState.Running, "No OCR engine is ready — add the Chinese OCR language pack in Windows settings.");
             }
             catch (Exception ex)
             {
