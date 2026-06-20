@@ -38,7 +38,10 @@ public partial class TargetPickerWindow : Window
 
     private void OnDrag(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton == MouseButton.Left) DragMove();
+        // Drag from any empty area; interactive controls handle their own clicks.
+        if (e.ButtonState != MouseButtonState.Pressed || e.ChangedButton != MouseButton.Left) return;
+        try { DragMove(); }
+        catch { /* DragMove throws if the button was already released; ignore */ }
     }
 
     private void OnWindowDoubleClick(object sender, MouseButtonEventArgs e)

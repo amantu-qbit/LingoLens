@@ -3,16 +3,21 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Choose a target"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        Width="540" Height="628" WindowStartupLocation="CenterOwner"
+        Width="560" Height="660" WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize" UseLayoutRounding="True">
 
-    <Border Margin="14" CornerRadius="16" Background="{StaticResource BackgroundBrush}"
-            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+    <Window.Resources>
+        <FontFamily x:Key="Icons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+    </Window.Resources>
+
+    <Border Margin="14" CornerRadius="18" Background="{StaticResource BackgroundBrush}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            MouseLeftButtonDown="OnDrag">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.55" Color="Black" />
+            <DropShadowEffect BlurRadius="30" ShadowDepth="3" Opacity="0.55" Color="Black" />
         </Border.Effect>
 
-        <Grid Margin="0">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -20,68 +25,113 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Title bar -->
-            <Grid Grid.Row="0" Height="56" MouseLeftButtonDown="OnDrag">
-                <TextBlock Text="What should I translate?" Style="{StaticResource TitleText}"
-                           Margin="22,0,0,0" VerticalAlignment="Center" />
+            <!-- Header -->
+            <Grid Grid.Row="0" Height="66">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0,0,0">
+                    <Grid Width="26" Height="26" Margin="0,0,13,0">
+                        <Ellipse Stroke="{StaticResource AccentBrush}" StrokeThickness="2" />
+                        <Ellipse Width="10" Height="10" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.3" Opacity="0.65" />
+                        <Ellipse Width="3.5" Height="3.5" Fill="{StaticResource AccentBrush}" />
+                    </Grid>
+                    <TextBlock Text="Choose what to translate" Style="{StaticResource TitleText}" VerticalAlignment="Center" />
+                </StackPanel>
                 <Button Style="{StaticResource IconButton}" Content="&#xE8BB;" HorizontalAlignment="Right"
-                        Margin="0,0,12,0" VerticalAlignment="Center" Click="OnCancel" />
+                        Margin="0,0,14,0" VerticalAlignment="Center" Click="OnCancel" />
             </Grid>
 
-            <TextBlock Grid.Row="1" Text="OPEN WINDOWS" Style="{StaticResource SectionHeader}" Margin="22,2,0,8" />
+            <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource HairlineBrush}" Margin="22,0" />
 
             <!-- Windows list -->
-            <Border Grid.Row="2" Margin="22,0,22,0" CornerRadius="12" Background="{StaticResource SurfaceBrush}"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                <ListBox x:Name="WindowsList" Background="Transparent" BorderThickness="0" Margin="6"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         MouseDoubleClick="OnWindowDoubleClick">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="bd" CornerRadius="8" Padding="12,9" Margin="2" Background="Transparent"
-                                                BorderBrush="Transparent" BorderThickness="1">
-                                            <ContentPresenter />
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="{StaticResource SurfaceAltBrush}" />
-                                            </Trigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentSoftBrush}" />
-                                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding Title}" Style="{StaticResource BodyText}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding ProcessName}" Style="{StaticResource MicroText}" Margin="0,1,0,0" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Border>
+            <Grid Grid.Row="2" Margin="22,16,22,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="OPEN WINDOWS" Style="{StaticResource SectionHeader}" Margin="2,0,0,10" />
+                <Border Grid.Row="1" CornerRadius="13" Background="{StaticResource SurfaceBrush}"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                    <ListBox x:Name="WindowsList" Background="Transparent" BorderThickness="0" Margin="7"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             MouseDoubleClick="OnWindowDoubleClick">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="bd" CornerRadius="10" Padding="11,9" Margin="2"
+                                                    Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="bd" Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                                    <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <!-- Leading tile -->
+                                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="9"
+                                            Background="{StaticResource SurfaceRaisedBrush}" Margin="0,0,12,0">
+                                        <TextBlock Text="&#xE737;" FontFamily="{StaticResource Icons}" FontSize="15"
+                                                   Foreground="{StaticResource AccentBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}" Style="{StaticResource BodyText}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding ProcessName}" Style="{StaticResource MicroText}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+            </Grid>
 
-            <!-- Footer: monitor + region + actions -->
-            <StackPanel Grid.Row="3" Margin="22,18,22,22">
-                <TextBlock Text="OR CAPTURE" Style="{StaticResource SectionHeader}" Margin="0,0,0,8" />
+            <!-- Capture a whole screen or a region -->
+            <StackPanel Grid.Row="3" Margin="22,16,22,22">
+                <TextBlock Text="OR CAPTURE A SCREEN" Style="{StaticResource SectionHeader}" Margin="2,0,0,10" />
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="12" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ComboBox x:Name="MonitorsCombo" Grid.Column="0" Style="{StaticResource DarkComboBox}" Margin="0,0,8,0" />
-                    <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="Use monitor" Click="OnUseMonitor" Margin="0,0,8,0" />
-                    <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="Draw region…" Click="OnDrawRegion" />
+
+                    <!-- Monitor -->
+                    <Border Grid.Column="0" CornerRadius="12" Background="{StaticResource SurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="MonitorsCombo" Grid.Column="0" Style="{StaticResource DarkComboBox}" Margin="0,0,10,0" />
+                            <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="Capture" Click="OnUseMonitor" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Region -->
+                    <Button Grid.Column="2" Style="{StaticResource GhostButton}" Click="OnDrawRegion" Padding="16,0" Height="62">
+                        <StackPanel>
+                            <TextBlock Text="&#xE7A8;" FontFamily="{StaticResource Icons}" FontSize="16"
+                                       Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Text="Draw region" Style="{StaticResource CaptionText}" Margin="0,4,0,0" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">

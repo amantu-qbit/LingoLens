@@ -66,6 +66,11 @@ public sealed class OpusMtTranslator : ITranslator
     public bool IsReady => _ready;
 
     /// <inheritdoc />
+    public string? UnavailableReason => _ready ? null : _unavailableReason;
+
+    private volatile string? _unavailableReason = "Opus-MT has not been initialized yet.";
+
+    /// <inheritdoc />
     public bool Supports(LanguagePair pair)
     {
         if (!IsEnglish(pair.Target)) return false;
@@ -80,6 +85,7 @@ public sealed class OpusMtTranslator : ITranslator
     {
         if (_initialized) return;
         await _initGate.WaitAsync(ct).ConfigureAwait(false);
+        string stage = "initializing";
         try
         {
             if (_initialized) return;
@@ -88,6 +94,7 @@ public sealed class OpusMtTranslator : ITranslator
             const string bundle = DefaultModelManifest.OpusMtBundleId;
             if (!_models.IsInstalled(bundle))
             {
+                _unavailableReason = "The Fast model isn't fully installed — re-download it in Settings ▸ Models.";
                 _logger.LogInformation(
                     "Opus-MT bundle '{Bundle}' is not installed; translator is unavailable.", bundle);
                 return;
@@ -99,6 +106,7 @@ public sealed class OpusMtTranslator : ITranslator
             string targetSpm = _models.GetAssetPath(bundle, "target.spm");
             string configPath = _models.GetAssetPath(bundle, "config.json");
 
+            stage = "loading the tokenizer";
             _sourceTokenizer = LoadTokenizer(sourceSpm);
             if (File.Exists(targetSpm))
             {
@@ -114,7 +122,7 @@ public sealed class OpusMtTranslator : ITranslator
 
             // Create the encoder/decoder sessions on the selected accelerator, falling back to CPU if the
             // GPU execution provider cannot actually load the model (common for Marian graphs on DirectML).
-            // Without this the translator silently goes unavailable and the overlay shows nothing.
+            stage = "loading the model";
             (_encoder, _decoder, _sessionOptions) = CreateSessions(encoderPath, decoderPath);
 
             // The merged decoder exposes a boolean 'use_cache_branch' selector; detect it so we can
@@ -123,15 +131,18 @@ public sealed class OpusMtTranslator : ITranslator
 
             // Special token ids come from the model config (decoder_start/eos/pad), NOT from the
             // tokenizer's unknown id. Fall back to sensible Marian defaults when config is absent.
+            stage = "reading the model config";
             LoadSpecialTokenIdsFromConfig(configPath);
 
             _ready = true;
+            _unavailableReason = null;
             _logger.LogInformation("Opus-MT translator ready on {Device}.", _devices.Selected.Name);
         }
         catch (Exception ex)
         {
             _ready = false;
-            _logger.LogError(ex, "Opus-MT initialization failed; translator is unavailable.");
+            _unavailableReason = $"failed while {stage} — {ex.GetType().Name}: {Short(ex.Message)}";
+            _logger.LogError(ex, "Opus-MT initialization failed while {Stage}; translator is unavailable.", stage);
             DisposeSessions();
         }
         finally
@@ -446,12 +457,15 @@ public sealed class OpusMtTranslator : ITranslator
     private static SentencePieceTokenizer LoadTokenizer(string spmPath)
     {
         using var stream = File.OpenRead(spmPath);
-        // LlamaTokenizer.Create returns a SentencePieceTokenizer-derived instance configured from the
-        // SentencePiece protobuf model. Marian tokenizers add EOS but not BOS.
-        var tokenizer = LlamaTokenizer.Create(
-            stream, addBeginOfSentence: false, addEndOfSentence: true);
-        return tokenizer;
+        // Opus-MT / Marian ships a *Unigram* SentencePiece model. SentencePieceTokenizer.Create (added in
+        // Microsoft.ML.Tokenizers 2.0.0) loads both Unigram and BPE models; LlamaTokenizer.Create accepted
+        // BPE only and threw "The model type is not Bpe." on Marian's unigram model — the bug that kept this
+        // translator permanently unavailable. Marian tokenizers add EOS but not BOS.
+        return SentencePieceTokenizer.Create(stream, addBeginOfSentence: false, addEndOfSentence: true);
     }
+
+    private static string Short(string? s) =>
+        string.IsNullOrEmpty(s) ? string.Empty : (s.Length <= 160 ? s : s[..160] + "…");
 
     private static bool IsEnglish(string code) =>
         code.Equals("en", StringComparison.OrdinalIgnoreCase) ||

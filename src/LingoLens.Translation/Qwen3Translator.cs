@@ -68,6 +68,11 @@ public sealed class Qwen3Translator : ITranslator
     /// <inheritdoc />
     public bool IsReady => _ready;
 
+    /// <inheritdoc />
+    public string? UnavailableReason => _ready ? null : _unavailableReason;
+
+    private volatile string? _unavailableReason = "Qwen3 has not been initialized yet.";
+
     /// <summary>Qwen3 is broadly multilingual; accept any pair where the source and target differ.</summary>
     public bool Supports(LanguagePair pair) =>
         !string.IsNullOrWhiteSpace(pair.Source) &&
@@ -87,6 +92,7 @@ public sealed class Qwen3Translator : ITranslator
             const string bundle = DefaultModelManifest.Qwen3BundleId;
             if (!_models.IsInstalled(bundle))
             {
+                _unavailableReason = "The Quality model isn't installed — download it in Settings ▸ Models.";
                 _logger.LogInformation("Qwen3 bundle '{Bundle}' not installed; translator unavailable.", bundle);
                 return;
             }
@@ -113,12 +119,16 @@ public sealed class Qwen3Translator : ITranslator
             _executor = new StatelessExecutor(_weights, parameters);
 
             _ready = true;
+            _unavailableReason = null;
             _logger.LogInformation("Qwen3 translator ready on {Device}.", _devices.Selected.Name);
         }
         catch (Exception ex)
         {
-            // Missing native backend (DllNotFoundException), unsupported model, OOM, etc.
+            // Missing native backend (DllNotFoundException / TypeInitializationException), unsupported model, OOM, etc.
             _ready = false;
+            _unavailableReason = ex is TypeInitializationException or DllNotFoundException
+                ? "the Quality model needs a llama.cpp backend that isn't bundled — use the Fast model instead"
+                : $"{ex.GetType().Name}: {ex.Message}";
             _logger.LogWarning(ex, "Qwen3 initialization failed; translator unavailable.");
             _weights?.Dispose();
             _weights = null;
