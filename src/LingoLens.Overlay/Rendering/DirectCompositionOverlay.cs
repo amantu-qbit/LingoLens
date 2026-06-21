@@ -39,8 +39,7 @@ namespace LingoLens.Overlay.Rendering;
 /// </remarks>
 public sealed class DirectCompositionOverlay : IOverlayRenderer
 {
-    // Padding inside a backplate, as a fraction of the box's shorter side.
-    private const double PaddingFraction = 0.12;
+    // Minimum padding inside a backplate, in DIPs.
     private const double MinPaddingDip = 2.0;
 
     private readonly ILogger<DirectCompositionOverlay> _logger;
@@ -586,19 +585,28 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
         var (plate, textColor) = ResolveColors(item, style);
         float plateAlpha = (float)Math.Clamp(style.BackplateOpacity, 0.0, 1.0) * opacity;
 
-        float pad = (float)Math.Max(MinPaddingDip, Math.Min(width, height) * PaddingFraction);
         float radius = (float)Math.Max(0, style.CornerRadius);
 
-        // 1) Rounded translucent backplate.
-        var plateRect = new System.Drawing.RectangleF(left, top, width, height);
+        // Readable font size from the source line height (English at ~the original line height), floored so
+        // it is never tiny. We deliberately do NOT shrink text to fit the narrow source box — English is
+        // longer than the Chinese it replaces, so the backplate grows to fit instead of squashing the glyphs.
+        float fontSize = MathF.Max(TextLayoutEngine.MinReadableFontDip, height * 0.82f);
+        float pad = MathF.Max((float)MinPaddingDip, fontSize * 0.28f);
+
+        // Let the text grow rightward, wrapping before it runs off the window edge.
+        float maxTextWidth = MathF.Max(width, MathF.Min(_swapWidth - left - 2 * pad, fontSize * 28f));
+        maxTextWidth = MathF.Max(1f, maxTextWidth);
+        using var layout = _layout!.CreateReadableLayout(
+            item.Text ?? string.Empty, fontSize, maxTextWidth, _swapHeight, style.FontFamily, out var tr);
+
+        // Grow the backplate to the measured text (at least the original box), clamped to the window.
+        float plateW = MathF.Max(1f, MathF.Min(_swapWidth - left, MathF.Max(width, tr.Width + 2 * pad)));
+        float plateH = MathF.Max(1f, MathF.Max(height, tr.Height + 2 * pad));
+
+        // 1) Rounded translucent backplate, sized to the readable text.
+        var plateRect = new System.Drawing.RectangleF(left, top, plateW, plateH);
         using var plateBrush = ctx.CreateSolidColorBrush(new Color4(plate.R, plate.G, plate.B, plateAlpha));
         ctx.FillRoundedRectangle(new RoundedRectangle(plateRect, radius, radius), plateBrush);
-
-        // 2) Text auto-fitted into the padded footprint.
-        float innerW = MathF.Max(1f, width - 2 * pad);
-        float innerH = MathF.Max(1f, height - 2 * pad);
-        using var layout = _layout!.CreateFittedLayout(
-            item.Text ?? string.Empty, innerW, innerH, style.FontFamily, style.MinFontScale, out _);
 
         var origin = new Vector2(left + pad, top + pad);
 
