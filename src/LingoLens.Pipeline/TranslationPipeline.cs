@@ -579,14 +579,10 @@ public sealed class TranslationPipeline : ITranslationPipeline
 
             if (detections.Count == 0)
             {
-                // Settled change produced no usable text → present an empty (stabilized) frame so any
-                // stale overlay for these regions fades out rather than lingering.
-                PresentStabilized(new OverlayFrame
-                {
-                    Items = Array.Empty<OverlayItem>(),
-                    SourceBounds = sourceBounds,
-                    TimestampTicks = work.CaptureTimestampTicks,
-                }, timer);
+                // Windows OCR is flaky frame-to-frame: it intermittently returns nothing for a region that
+                // plainly has text. Presenting an empty frame here cleared the overlay, so translated text
+                // flickered away after ~1 s. Instead keep the last overlay up and just record the frame —
+                // real text on a later frame replaces it, and Pause/Stop still clears explicitly.
                 CommitFrameMetrics(work, hadText: false);
                 return;
             }

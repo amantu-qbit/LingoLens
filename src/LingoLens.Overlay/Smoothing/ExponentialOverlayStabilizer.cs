@@ -54,7 +54,7 @@ public sealed class ExponentialOverlayStabilizer : IOverlayStabilizer
         /// Grace period (ms) to keep showing an item after it stops appearing, before the fade-out starts.
         /// Absorbs single dropped frames without blinking.
         /// </summary>
-        public double DisappearGraceMilliseconds { get; init; } = 60.0;
+        public double DisappearGraceMilliseconds { get; init; } = 800.0;
 
         /// <summary>Reference frame interval (ms) the <see cref="PositionLerp"/> factor is calibrated for.</summary>
         public double ReferenceFrameMilliseconds { get; init; } = 33.0;
