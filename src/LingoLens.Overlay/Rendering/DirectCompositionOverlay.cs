@@ -590,11 +590,13 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
         // Readable font size from the source line height (English at ~the original line height), floored so
         // it is never tiny. We deliberately do NOT shrink text to fit the narrow source box — English is
         // longer than the Chinese it replaces, so the backplate grows to fit instead of squashing the glyphs.
-        float fontSize = MathF.Max(TextLayoutEngine.MinReadableFontDip, height * 0.82f);
+        float fontSize = MathF.Min(28f, MathF.Max(TextLayoutEngine.MinReadableFontDip, height * 0.82f));
         float pad = MathF.Max((float)MinPaddingDip, fontSize * 0.28f);
 
-        // Let the text grow rightward, wrapping before it runs off the window edge.
-        float maxTextWidth = MathF.Max(width, MathF.Min(_swapWidth - left - 2 * pad, fontSize * 28f));
+        // Keep the box anchored to the source line: allow it to grow to at most ~2.2x the source width
+        // (or a readable minimum), wrapping to more lines beyond that, and never past the window edge. This
+        // stops a long translation from sprawling across the screen and overlapping its neighbours.
+        float maxTextWidth = MathF.Min(_swapWidth - left - 2 * pad, MathF.Max(width * 2.2f, fontSize * 12f));
         maxTextWidth = MathF.Max(1f, maxTextWidth);
         using var layout = _layout!.CreateReadableLayout(
             item.Text ?? string.Empty, fontSize, maxTextWidth, _swapHeight, style.FontFamily, out var tr);
