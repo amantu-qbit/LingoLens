@@ -195,6 +195,10 @@ internal static unsafe class NativeMethods
     [DllImport("user32.dll")]
     internal static extern uint GetDpiForWindow(IntPtr hWnd);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
     // ---- DWM (per-pixel-alpha layered window via DirectComposition) -----------------------------------
 
     [StructLayout(LayoutKind.Sequential)]

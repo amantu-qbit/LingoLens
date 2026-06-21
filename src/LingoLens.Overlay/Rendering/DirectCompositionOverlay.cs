@@ -543,6 +543,21 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
             float ox = -frame.SourceBounds.X * sx;
             float oy = -frame.SourceBounds.Y * sy;
 
+            // Coordinate diagnostics: pins down a "translations land in the wrong place" report by showing
+            // the requested bounds, the actual on-screen window rect + DPI, and where item 0 maps to.
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                var fb0 = frame.Items[0].SourceBox.Bounds;
+                uint dpi = _hwnd != IntPtr.Zero ? NativeMethods.GetDpiForWindow(_hwnd) : 0;
+                string winRect = (_hwnd != IntPtr.Zero && NativeMethods.GetWindowRect(_hwnd, out var wr))
+                    ? $"({wr.Left},{wr.Top})-({wr.Right},{wr.Bottom})" : "(n/a)";
+                _logger.LogInformation(
+                    "Overlay map: bounds=({BX},{BY} {BW}x{BH}) win={Win} dpi={Dpi} swap={SwW}x{SwH} src=({CX},{CY} {CW}x{CH}) scale=({Sx:F3},{Sy:F3}); item0 box=({IX},{IY}) → plate=({PX},{PY}).",
+                    bounds.X, bounds.Y, bounds.Width, bounds.Height, winRect, dpi, _swapWidth, _swapHeight,
+                    frame.SourceBounds.X, frame.SourceBounds.Y, frame.SourceBounds.Width, frame.SourceBounds.Height,
+                    sx, sy, (int)fb0.X, (int)fb0.Y, (int)((float)fb0.X * sx + ox), (int)((float)fb0.Y * sy + oy));
+            }
+
             foreach (var item in frame.Items)
                 DrawItem(ctx, item, style, sx, sy, ox, oy);
         }
