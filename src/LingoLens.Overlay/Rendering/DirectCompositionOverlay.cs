@@ -602,6 +602,8 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
         // Grow the backplate to the measured text (at least the original box), clamped to the window.
         float plateW = MathF.Max(1f, MathF.Min(_swapWidth - left, MathF.Max(width, tr.Width + 2 * pad)));
         float plateH = MathF.Max(1f, MathF.Max(height, tr.Height + 2 * pad));
+        // Safety: never let one backplate dominate the screen if a line decodes unexpectedly long.
+        plateH = MathF.Min(plateH, MathF.Max(height * 2.2f, fontSize * 5f));
 
         // 1) Rounded translucent backplate, sized to the readable text.
         var plateRect = new System.Drawing.RectangleF(left, top, plateW, plateH);
