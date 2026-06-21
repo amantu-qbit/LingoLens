@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
@@ -43,6 +44,12 @@ public sealed class OpusMtTranslator : ITranslator
     private int _padId;
     private int _decoderStartId;
     private int _vocabSize;
+    // HF Marian tokenization is SentencePiece → pieces → vocab.json → model ids. The SentencePiece model's
+    // own internal ids differ from these, so we must map pieces through vocab.json or the model receives
+    // wrong ids and emits garbage. Built from the bundle's vocab.json at init.
+    private Dictionary<string, int>? _pieceToId;
+    private string[]? _idToPiece;
+    private int _unkId = 1;
     private int _maxOutputTokens = DefaultMaxOutputTokens;
     private bool _decoderWantsUseCacheBranch;
     private bool _initialized;
@@ -134,6 +141,9 @@ public sealed class OpusMtTranslator : ITranslator
             // tokenizer's unknown id. Fall back to sensible Marian defaults when config is absent.
             stage = "reading the model config";
             LoadSpecialTokenIdsFromConfig(configPath);
+
+            stage = "loading the vocabulary";
+            LoadVocab(_models.GetAssetPath(bundle, "vocab.json"));
 
             _ready = true;
             _unavailableReason = null;
@@ -273,22 +283,21 @@ public sealed class OpusMtTranslator : ITranslator
             // one-at-a-time — the difference between ~12 s and ~1 s for a full screen. The sessions are
             // pinned to single-threaded intra-op (see CreateSessions) so these parallel decodes don't fight
             // over the same thread pool.
+            // Parallel.For (not Parallel.ForAsync) — the body is synchronous CPU work, and ForAsync with a
+            // synchronously-completing body collapses onto a single worker, so it never actually parallelized.
+            // Run it on the thread pool so we don't block the caller while the cores chew through the lines.
             int dop = Math.Clamp(Environment.ProcessorCount, 1, 16);
-            await Parallel.ForAsync(0, request.Items.Count,
+            await Task.Run(() => Parallel.For(0, request.Items.Count,
                 new ParallelOptions { MaxDegreeOfParallelism = dop, CancellationToken = ct },
-                (i, token) =>
+                i =>
                 {
                     var item = request.Items[i];
                     string target;
                     try
                     {
-                        target = TranslateOne(item.Source, token);
+                        target = TranslateOne(item.Source, ct);
                     }
-                    catch (OperationCanceledException)
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OperationCanceledException)
                     {
                         _logger.LogWarning(ex, "Opus-MT failed on item {Id}; returning source verbatim.", item.Id);
                         target = item.Source;
@@ -302,9 +311,7 @@ public sealed class OpusMtTranslator : ITranslator
                         FromCache = false,
                         Confidence = 1.0,
                     };
-
-                    return ValueTask.CompletedTask;
-                }).ConfigureAwait(false);
+                }), ct).ConfigureAwait(false);
         }
         finally
         {
@@ -349,9 +356,8 @@ public sealed class OpusMtTranslator : ITranslator
     {
         if (string.IsNullOrWhiteSpace(source)) return string.Empty;
 
-        // 1) Encode source: ids + EOS.
-        IReadOnlyList<int> srcIds = _sourceTokenizer!.EncodeToIds(
-            source, addBeginningOfSentence: false, addEndOfSentence: true);
+        // 1) Encode source into model (vocab.json) ids, then append EOS.
+        IReadOnlyList<int> srcIds = EncodeToVocabIds(source);
         if (srcIds.Count == 0) return string.Empty;
 
         int srcLen = srcIds.Count;
@@ -394,11 +400,93 @@ public sealed class OpusMtTranslator : ITranslator
             if (generated.Count >= AbsoluteMaxDecoderLength) break;
         }
 
-        // Drop the decoder-start token before detokenizing.
-        var outIds = generated.Count > 1
-            ? generated.Skip(1).Select(static x => (int)x)
-            : Enumerable.Empty<int>();
-        return _targetTokenizer!.Decode(outIds).Trim();
+        // Map the produced model ids (skipping the decoder-start token) → pieces → text via vocab.json.
+        return DecodeVocabIds(generated);
+    }
+
+    /// <summary>
+    /// Tokenize <paramref name="source"/> with SentencePiece, then map each piece to its model id via
+    /// vocab.json (HF Marian's vocabulary), appending the end-of-sentence id. Pieces absent from the vocab
+    /// fall back to the unknown id. This is the mapping the ONNX model was exported against — using the
+    /// SentencePiece model's own internal ids instead produces wrong inputs and garbage translations.
+    /// </summary>
+    private List<int> EncodeToVocabIds(string source)
+    {
+        var ids = new List<int>();
+        Dictionary<string, int>? map = _pieceToId;
+        if (map is null) return ids;
+
+        IReadOnlyList<EncodedToken> tokens = _sourceTokenizer!.EncodeToTokens(source, out _);
+        foreach (EncodedToken token in tokens)
+        {
+            string piece = token.Value;
+            if (map.TryGetValue(piece, out int id) ||
+                map.TryGetValue('▁' + piece, out id)) // tolerate a missing word-boundary marker
+            {
+                ids.Add(id);
+            }
+            else
+            {
+                ids.Add(_unkId);
+            }
+        }
+
+        ids.Add(_eosId);
+        return ids;
+    }
+
+    /// <summary>
+    /// Map produced model ids back to SentencePiece pieces via vocab.json and detokenize: drop special
+    /// tokens, concatenate, and turn the ▁ word-boundary marker into a space.
+    /// </summary>
+    private string DecodeVocabIds(List<long> generated)
+    {
+        string[]? idToPiece = _idToPiece;
+        if (idToPiece is null || generated.Count <= 1) return string.Empty;
+
+        var sb = new StringBuilder(generated.Count * 4);
+        // Skip index 0 (the decoder-start token).
+        for (int i = 1; i < generated.Count; i++)
+        {
+            long id = generated[i];
+            if (id == _eosId || id == _padId || id == _decoderStartId || id == _unkId) continue;
+            if (id < 0 || id >= idToPiece.Length) continue;
+            string? piece = idToPiece[id];
+            if (string.IsNullOrEmpty(piece) || piece.Length == 0) continue;
+            if (piece[0] == '<' && (piece == "<unk>" || piece == "<s>" || piece == "</s>" || piece == "<pad>")) continue;
+            sb.Append(piece);
+        }
+
+        return sb.Replace('▁', ' ').ToString().Trim();
+    }
+
+    /// <summary>Loads the HF Marian vocab.json (piece → id) and builds the reverse id → piece table.</summary>
+    private void LoadVocab(string vocabPath)
+    {
+        using FileStream stream = File.OpenRead(vocabPath);
+        using JsonDocument doc = JsonDocument.Parse(stream);
+
+        var pieceToId = new Dictionary<string, int>(StringComparer.Ordinal);
+        int maxId = 0;
+        foreach (JsonProperty prop in doc.RootElement.EnumerateObject())
+        {
+            if (prop.Value.ValueKind == JsonValueKind.Number && prop.Value.TryGetInt32(out int id))
+            {
+                pieceToId[prop.Name] = id;
+                if (id > maxId) maxId = id;
+            }
+        }
+
+        var idToPiece = new string[maxId + 1];
+        foreach (KeyValuePair<string, int> kv in pieceToId)
+        {
+            if (kv.Value >= 0 && kv.Value < idToPiece.Length) idToPiece[kv.Value] = kv.Key;
+        }
+
+        _pieceToId = pieceToId;
+        _idToPiece = idToPiece;
+        _unkId = pieceToId.TryGetValue("<unk>", out int u) ? u : 1;
+        _logger.LogInformation("Opus-MT vocab.json loaded: {Count} pieces (unk={Unk}).", pieceToId.Count, _unkId);
     }
 
     /// <summary>True when the decoded tail collapsed into a short repeating cycle (greedy degeneration).</summary>
@@ -506,7 +594,9 @@ public sealed class OpusMtTranslator : ITranslator
         // Microsoft.ML.Tokenizers 2.0.0) loads both Unigram and BPE models; LlamaTokenizer.Create accepted
         // BPE only and threw "The model type is not Bpe." on Marian's unigram model — the bug that kept this
         // translator permanently unavailable. Marian tokenizers add EOS but not BOS.
-        return SentencePieceTokenizer.Create(stream, addBeginningOfSentence: false, addEndOfSentence: true);
+        // We only use SentencePiece for segmentation into pieces; ids and EOS are applied via vocab.json
+        // (see EncodeToVocabIds), so don't let the tokenizer auto-insert BOS/EOS pieces here.
+        return SentencePieceTokenizer.Create(stream, addBeginningOfSentence: false, addEndOfSentence: false);
     }
 
     private static string Short(string? s) =>
