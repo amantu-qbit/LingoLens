@@ -135,6 +135,36 @@ public sealed class TextLayoutEngine : IDisposable
         return layout;
     }
 
+    /// <summary>Minimum on-screen font size in DIPs — translated text is never drawn smaller than this.</summary>
+    public const float MinReadableFontDip = 15f;
+
+    /// <summary>
+    /// Lays text out at a fixed, readable size (never shrunk to fit a narrow source box) and lets it wrap
+    /// within <paramref name="maxWidth"/>. The caller sizes the backplate to the measured result, so English
+    /// that is longer than the Chinese it replaces stays readable by growing the plate instead of shrinking
+    /// the glyphs. The returned layout is owned by the caller and must be disposed.
+    /// </summary>
+    public IDWriteTextLayout CreateReadableLayout(
+        string text, float fontSize, float maxWidth, float maxHeight, string fontFamily, out TextLayoutResult result)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        text ??= string.Empty;
+
+        float size = MathF.Max(MinReadableFontDip, fontSize);
+        float w = MathF.Max(1f, maxWidth);
+        float h = MathF.Max(size, maxHeight);
+
+        var layout = BuildLayout(text, fontFamily, size, w, h);
+        var m = layout.Metrics;
+        result = new TextLayoutResult(
+            FontSize: size,
+            Width: m.WidthIncludingTrailingWhitespace,
+            Height: m.Height,
+            LineCount: (int)m.LineCount,
+            Overflowed: m.Height > h + 0.5f);
+        return layout;
+    }
+
     /// <summary>
     /// Measures only (no retained layout). Useful for pipeline layout decisions that do not draw immediately.
     /// </summary>
