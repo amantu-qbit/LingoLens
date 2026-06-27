@@ -67,6 +67,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         Models = BuildModelCatalog();
     }
 
+    /// <summary>Short product version (e.g. "v0.2.0") shown in the About card.</summary>
+    public string AppVersion
+    {
+        get
+        {
+            var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            return v is null ? "" : $"v{v.Major}.{v.Minor}.{v.Build}";
+        }
+    }
+
     // ---- Models ----
     public ObservableCollection<ModelBundleViewModel> Models { get; }
 

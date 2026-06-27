@@ -571,11 +571,13 @@ public sealed class TranslationPipeline : ITranslationPipeline
 
             // Per-frame chain diagnostics: shows exactly where a "nothing appears" frame breaks down —
             // OCR found no text, nothing was in the source language, translation was empty, or no boxes built.
-            _logger.LogInformation(
-                "Frame OCR: {Raw} raw → {Kept} kept → {Translatable} translatable across {Regions} region(s); first: '{Sample}'.",
-                rawDetections.Count, kept.Count, translatable.Count, work.ChangedRegions.Count,
-                translatable.Count > 0 ? Short(translatable[0].Text)
-                    : (rawDetections.Count > 0 ? Short(rawDetections[0].Text) : "(none)"));
+            // Per frame, so gated to Debug (and guarded so the Short(...) formatting never runs in production).
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug(
+                    "Frame OCR: {Raw} raw → {Kept} kept → {Translatable} translatable across {Regions} region(s); first: '{Sample}'.",
+                    rawDetections.Count, kept.Count, translatable.Count, work.ChangedRegions.Count,
+                    translatable.Count > 0 ? Short(translatable[0].Text)
+                        : (rawDetections.Count > 0 ? Short(rawDetections[0].Text) : "(none)"));
 
             if (detections.Count == 0)
             {
@@ -598,7 +600,7 @@ public sealed class TranslationPipeline : ITranslationPipeline
             OverlayFrame overlay = timer.Measure(PipelineStage.Layout, () =>
                 BuildOverlayFrame(detections, translation, sourceBounds, work.CaptureTimestampTicks));
 
-            if (_logger.IsEnabled(LogLevel.Information))
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
                 int nonEmpty = 0;
                 TranslatedItem? firstShown = null;
@@ -609,7 +611,7 @@ public sealed class TranslationPipeline : ITranslationPipeline
                     firstShown ??= t;
                 }
 
-                _logger.LogInformation(
+                _logger.LogDebug(
                     "Frame translate: {NonEmpty}/{Total} non-empty target(s) → {Boxes} overlay box(es) in {Ms:F0} ms. sample: '{Src}' → '{Tgt}'.",
                     nonEmpty, translation.Items.Count, overlay.Items.Count, translateMs,
                     firstShown is not null ? Short(firstShown.Source) : "(none)",

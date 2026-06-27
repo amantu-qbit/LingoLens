@@ -22,6 +22,16 @@ public partial class RegionSelectorWindow : Window
         Top = SystemParameters.VirtualScreenTop;
         Width = SystemParameters.VirtualScreenWidth;
         Height = SystemParameters.VirtualScreenHeight;
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        OuterRect.Rect = new Rect(0, 0, RootCanvas.ActualWidth, RootCanvas.ActualHeight);
+        // Centre the opening hint in the upper third.
+        Hint.UpdateLayout();
+        Canvas.SetLeft(Hint, Math.Max(0, (RootCanvas.ActualWidth - Hint.ActualWidth) / 2));
+        Canvas.SetTop(Hint, RootCanvas.ActualHeight * 0.14);
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -40,20 +50,37 @@ public partial class RegionSelectorWindow : Window
         _dragging = true;
         Hint.Visibility = Visibility.Collapsed;
         SelectionBox.Visibility = Visibility.Visible;
+        DimsChip.Visibility = Visibility.Visible;
         CaptureMouse();
         base.OnMouseLeftButtonDown(e);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        if (!_dragging) return;
         var p = e.GetPosition(RootCanvas);
-        double x = Math.Min(p.X, _start.X), y = Math.Min(p.Y, _start.Y);
-        double w = Math.Abs(p.X - _start.X), h = Math.Abs(p.Y - _start.Y);
-        Canvas.SetLeft(SelectionBox, x);
-        Canvas.SetTop(SelectionBox, y);
-        SelectionBox.Width = w;
-        SelectionBox.Height = h;
+
+        // Crosshair guides follow the cursor.
+        CrossV.X1 = p.X; CrossV.X2 = p.X; CrossV.Y1 = 0; CrossV.Y2 = RootCanvas.ActualHeight;
+        CrossH.Y1 = p.Y; CrossH.Y2 = p.Y; CrossH.X1 = 0; CrossH.X2 = RootCanvas.ActualWidth;
+
+        if (_dragging)
+        {
+            double x = Math.Min(p.X, _start.X), y = Math.Min(p.Y, _start.Y);
+            double w = Math.Abs(p.X - _start.X), h = Math.Abs(p.Y - _start.Y);
+
+            Canvas.SetLeft(SelectionBox, x);
+            Canvas.SetTop(SelectionBox, y);
+            SelectionBox.Width = w;
+            SelectionBox.Height = h;
+
+            HoleRect.Rect = new Rect(x, y, w, h);
+
+            DimsText.Text = $"{Math.Round(w)} × {Math.Round(h)}";
+            double chipTop = y > 34 ? y - 30 : y + h + 8;
+            Canvas.SetLeft(DimsChip, Math.Max(0, x));
+            Canvas.SetTop(DimsChip, chipTop);
+        }
+
         base.OnMouseMove(e);
     }
 

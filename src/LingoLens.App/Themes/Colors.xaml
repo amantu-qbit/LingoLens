@@ -2,50 +2,72 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ============================================================
-         LingoLens design tokens
-         A quiet, near-monochrome dark interface with a single mint
-         accent used sparingly. High text contrast, hairline borders,
-         flat surfaces — no glows, no gradients, no decoration for its
-         own sake. Built on an 8px spacing rhythm.
+         LingoLens · "Optic" design language
+         An instrument-grade dark interface: a warm graphite canvas,
+         a single amber focus accent for the one thing you press, and
+         an emerald signal reserved for the live, translating state.
+         Hierarchy is carried by weight, size and a four-step neutral
+         ramp — never by decoration. Geometry rides an 8px grid.
          ============================================================ -->
 
-    <!-- Surfaces: neutral, near-black, layered by a few points of lightness. -->
-    <SolidColorBrush x:Key="BackgroundBrush"     Color="#0D0D0F" />
-    <SolidColorBrush x:Key="SurfaceBrush"        Color="#17181B" />
-    <SolidColorBrush x:Key="SurfaceAltBrush"     Color="#1E1F23" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush"  Color="#292A2F" />
-    <SolidColorBrush x:Key="BorderBrush"         Color="#2B2C32" />
-    <SolidColorBrush x:Key="BorderStrongBrush"   Color="#3A3B42" />
-    <SolidColorBrush x:Key="HairlineBrush"       Color="#222328" />
+    <!-- ===== Canvas & surfaces — warm graphite, layered by lightness ===== -->
+    <SolidColorBrush x:Key="CanvasBrush"         Color="#0B0B0C" />
+    <SolidColorBrush x:Key="ScrimBrush"          Color="#A6060607" />
+    <SolidColorBrush x:Key="SurfaceBrush"        Color="#141416" />
+    <SolidColorBrush x:Key="SurfaceAltBrush"     Color="#1B1B1E" />
+    <SolidColorBrush x:Key="SurfaceInsetBrush"   Color="#0F0F11" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush"  Color="#26262B" />
+    <SolidColorBrush x:Key="SurfaceOverlayBrush" Color="#1F1F23" />
 
-    <!-- Text: crisp neutral whites with deliberate, readable steps. -->
-    <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#FAFAFA" />
-    <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#B7B9C0" />
-    <SolidColorBrush x:Key="TextTertiaryBrush"   Color="#878A93" />
+    <!-- ===== Lines — hairlines that read as machined edges, not boxes ===== -->
+    <SolidColorBrush x:Key="HairlineBrush"       Color="#1F1F23" />
+    <SolidColorBrush x:Key="BorderBrush"         Color="#2A2A31" />
+    <SolidColorBrush x:Key="BorderStrongBrush"   Color="#3B3B44" />
 
-    <!-- Accent: one mint, plus its hover / pressed / ink-on-mint variants. -->
-    <SolidColorBrush x:Key="AccentBrush"         Color="#4FD6B8" />
-    <SolidColorBrush x:Key="AccentHoverBrush"    Color="#67E0C6" />
-    <SolidColorBrush x:Key="AccentPressedBrush"  Color="#3BB89C" />
-    <SolidColorBrush x:Key="AccentInkBrush"      Color="#06140F" />
-    <SolidColorBrush x:Key="AccentSoftBrush"     Color="#224FD6B8" />
-    <SolidColorBrush x:Key="AccentDimBrush"      Color="#6E4FD6B8" />
+    <!-- ===== Text — neutral whites in deliberate, readable steps ===== -->
+    <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#F5F5F7" />
+    <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#AEAEB6" />
+    <SolidColorBrush x:Key="TextTertiaryBrush"   Color="#76767E" />
+    <SolidColorBrush x:Key="TextDisabledBrush"   Color="#56565D" />
 
-    <!-- Semantic (used rarely, kept close to the monochrome mood). -->
-    <SolidColorBrush x:Key="SuccessBrush"        Color="#56D49A" />
-    <SolidColorBrush x:Key="WarningBrush"        Color="#E2C275" />
-    <SolidColorBrush x:Key="DangerBrush"         Color="#E06C6C" />
+    <!-- ===== Accent — amber "focus": the colour of the control you press ===== -->
+    <SolidColorBrush x:Key="AccentBrush"         Color="#EDB54A" />
+    <SolidColorBrush x:Key="AccentHoverBrush"    Color="#F7C766" />
+    <SolidColorBrush x:Key="AccentPressedBrush"  Color="#CF9C34" />
+    <SolidColorBrush x:Key="AccentInkBrush"      Color="#1A1304" />
+    <SolidColorBrush x:Key="AccentSoftBrush"     Color="#24EDB54A" />
+    <SolidColorBrush x:Key="AccentSubtleBrush"   Color="#14EDB54A" />
+    <SolidColorBrush x:Key="AccentLineBrush"     Color="#59EDB54A" />
 
-    <!-- Colors kept as Color tokens for places that need a Color (shadows, etc.). -->
+    <!-- ===== Live — emerald: reserved for the active, translating signal ===== -->
+    <SolidColorBrush x:Key="LiveBrush"           Color="#43D6A0" />
+    <SolidColorBrush x:Key="LiveSoftBrush"       Color="#2243D6A0" />
+    <SolidColorBrush x:Key="LiveLineBrush"       Color="#5943D6A0" />
+
+    <!-- ===== Semantic — used sparingly, kept inside the mood ===== -->
+    <SolidColorBrush x:Key="SuccessBrush"        Color="#43D6A0" />
+    <SolidColorBrush x:Key="WarningBrush"        Color="#EDB54A" />
+    <SolidColorBrush x:Key="DangerBrush"         Color="#E5645D" />
+    <SolidColorBrush x:Key="DangerSoftBrush"     Color="#22E5645D" />
+
+    <!-- ===== Raw colours for places that need a Color (shadows, animation) ===== -->
     <Color x:Key="ShadowColor">#000000</Color>
-    <Color x:Key="AccentColor">#4FD6B8</Color>
+    <Color x:Key="AccentColor">#EDB54A</Color>
+    <Color x:Key="LiveColor">#43D6A0</Color>
 
-    <!-- ============ Typography ============
-         Segoe UI Variable for everything (ships with Windows 11; falls back to
-         Segoe UI). Cascadia Mono for numeric instrument readouts. Weight, size
-         and color carry the hierarchy — not extra font families. -->
+    <!-- ===================== Typography =====================
+         Segoe UI Variable across the board (ships with Windows 11, falls back
+         to Segoe UI). Optical sizes — Display for headings, Text for body —
+         plus Cascadia Mono for numeric instrument readouts. Weight, size and
+         colour carry the hierarchy; no decorative families. -->
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
+    <FontFamily x:Key="SmallFont">Segoe UI Variable Small, Segoe UI</FontFamily>
     <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+    <!-- Shared easing curve — a calm, decelerating ease used by every transition. -->
+    <CubicEase x:Key="EaseOut" EasingMode="EaseOut" />
+    <QuadraticEase x:Key="EaseInOut" EasingMode="EaseInOut" />
 
 </ResourceDictionary>

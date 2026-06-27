@@ -1,12 +1,16 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using LingoLens.Core;
 using LingoLens.Core.Capture;
 
 namespace LingoLens.App.Services;
 
 /// <summary>A capturable window candidate for the target picker.</summary>
-public sealed record WindowCandidate(nint Handle, string Title, string ProcessName)
+public sealed record WindowCandidate(nint Handle, string Title, string ProcessName, ImageSource? Icon = null)
 {
     public CaptureTarget ToTarget()
     {
@@ -36,6 +40,13 @@ public sealed record MonitorCandidate(nint Handle, string Name, RectI Bounds, bo
 /// <summary>Enumerates top-level windows and monitors for selecting a capture target.</summary>
 public sealed class TargetEnumerator
 {
+    /// <summary>
+    /// Enumerates windows on a background thread. Enumeration touches the process list and (best-effort)
+    /// each window's icon, which can take tens of milliseconds — running it off the UI thread keeps the
+    /// picker opening instantly.
+    /// </summary>
+    public Task<IReadOnlyList<WindowCandidate>> EnumerateWindowsAsync() => Task.Run(EnumerateWindows);
+
     public IReadOnlyList<WindowCandidate> EnumerateWindows()
     {
         var list = new List<WindowCandidate>();
@@ -67,7 +78,7 @@ public sealed class TargetEnumerator
             }
             catch { /* process may have exited */ }
 
-            list.Add(new WindowCandidate(hwnd, title, process));
+            list.Add(new WindowCandidate(hwnd, title, process, TryGetWindowIcon(hwnd)));
             return true;
         }, 0);
 
@@ -75,6 +86,33 @@ public sealed class TargetEnumerator
             .OrderBy(w => w.ProcessName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(w => w.Title, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    /// <summary>
+    /// Best-effort window icon as a frozen <see cref="ImageSource"/> usable on any thread. Prefers the
+    /// class icon (an instant lookup) and only falls back to the WM_GETICON message — with a short,
+    /// abort-if-hung timeout — so a frozen app can never stall enumeration. Returns null on any failure;
+    /// the picker then shows a neutral tile.
+    /// </summary>
+    private static ImageSource? TryGetWindowIcon(nint hwnd)
+    {
+        try
+        {
+            nint hIcon = NativeMethods.GetClassLongPtr(hwnd, NativeMethods.GCLP_HICONSM);
+            if (hIcon == 0) hIcon = NativeMethods.GetClassLongPtr(hwnd, NativeMethods.GCLP_HICON);
+            if (hIcon == 0)
+                NativeMethods.SendMessageTimeout(hwnd, NativeMethods.WM_GETICON, NativeMethods.ICON_SMALL2,
+                    0, NativeMethods.SMTO_ABORTIFHUNG, 80, out hIcon);
+            if (hIcon == 0) return null;
+
+            var source = Imaging.CreateBitmapSourceFromHIcon(hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            source.Freeze(); // cross-thread safe once frozen
+            return source;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public IReadOnlyList<MonitorCandidate> EnumerateMonitors()
