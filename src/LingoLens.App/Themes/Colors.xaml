@@ -44,9 +44,12 @@
     <SolidColorBrush x:Key="LiveSoftBrush"       Color="#2243D6A0" />
     <SolidColorBrush x:Key="LiveLineBrush"       Color="#5943D6A0" />
 
-    <!-- ===== Semantic — used sparingly, kept inside the mood ===== -->
+    <!-- ===== Semantic — used sparingly, kept inside the mood. Warning is a distinct, warmer
+         orange so "something needs you" never reads as the amber "press me" accent. ===== -->
     <SolidColorBrush x:Key="SuccessBrush"        Color="#43D6A0" />
-    <SolidColorBrush x:Key="WarningBrush"        Color="#EDB54A" />
+    <SolidColorBrush x:Key="WarningBrush"        Color="#E8923A" />
+    <SolidColorBrush x:Key="WarningSoftBrush"    Color="#22E8923A" />
+    <SolidColorBrush x:Key="WarningLineBrush"    Color="#59E8923A" />
     <SolidColorBrush x:Key="DangerBrush"         Color="#E5645D" />
     <SolidColorBrush x:Key="DangerSoftBrush"     Color="#22E5645D" />
 

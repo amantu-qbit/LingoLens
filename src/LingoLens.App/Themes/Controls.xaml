@@ -512,6 +512,9 @@
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
                                             <Grid>
+                                                <!-- Amber keyboard-focus ring (mirrors the focus story on buttons/fields). -->
+                                                <Ellipse Margin="-4" Stroke="{StaticResource AccentBrush}" StrokeThickness="2"
+                                                         Visibility="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=Slider}, Converter={StaticResource BoolToVis}}" />
                                                 <Ellipse Fill="{StaticResource TextPrimaryBrush}" />
                                                 <Ellipse Margin="4" Fill="{StaticResource AccentBrush}" />
                                             </Grid>

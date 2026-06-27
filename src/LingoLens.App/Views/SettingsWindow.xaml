@@ -158,11 +158,11 @@
                                 <ColumnDefinition Width="44" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <ComboBox Grid.Column="0" Style="{StaticResource DarkComboBox}"
+                            <ComboBox Grid.Column="0" Style="{StaticResource DarkComboBox}" AutomationProperties.Name="Translate from"
                                       ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" />
                             <TextBlock Grid.Column="1" Text="&#xE72A;" FontFamily="{StaticResource IconFont}" FontSize="14"
                                        Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            <ComboBox Grid.Column="2" Style="{StaticResource DarkComboBox}"
+                            <ComboBox Grid.Column="2" Style="{StaticResource DarkComboBox}" AutomationProperties.Name="Translate to"
                                       ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" />
                         </Grid>
                     </Border>
@@ -174,7 +174,7 @@
                     </StackPanel>
                     <Border Style="{StaticResource Card}" Margin="0,0,0,18">
                         <StackPanel>
-                            <ComboBox Style="{StaticResource DarkComboBox}"
+                            <ComboBox Style="{StaticResource DarkComboBox}" AutomationProperties.Name="Compute device"
                                       ItemsSource="{Binding DeviceItems}" SelectedItem="{Binding SelectedDevice}" />
                             <StackPanel Orientation="Horizontal" Margin="2,13,0,0">
                                 <TextBlock Text="Model tier" Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
@@ -196,7 +196,7 @@
                     <Border Style="{StaticResource Card}" Margin="0,0,0,18">
                         <StackPanel>
                             <TextBlock Text="Display style" Style="{StaticResource CaptionText}" Margin="2,0,0,7" />
-                            <ComboBox Style="{StaticResource DarkComboBox}"
+                            <ComboBox Style="{StaticResource DarkComboBox}" AutomationProperties.Name="Overlay display style"
                                       ItemsSource="{Binding OverlayStyles}" SelectedItem="{Binding SelectedStyle}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
@@ -204,8 +204,10 @@
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
+                            <TextBlock Text="{Binding SelectedStyleDescription}" Style="{StaticResource MicroText}"
+                                       TextWrapping="Wrap" LineHeight="16" Margin="2,8,0,0" />
 
-                            <!-- Live preview of the backplate -->
+                            <!-- Live preview of the backplate opacity -->
                             <Border Margin="0,16,0,0" Height="78" CornerRadius="10" ClipToBounds="True"
                                     Background="{StaticResource SurfaceInsetBrush}" BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1">
                                 <Grid>
@@ -226,12 +228,12 @@
                                            Text="{Binding Value, ElementName=OpacitySlider, StringFormat={}{0:P0}}" />
                             </Grid>
                             <Slider x:Name="OpacitySlider" Style="{StaticResource DarkSlider}" Minimum="0.2" Maximum="1.0"
-                                    Value="{Binding BackplateOpacity}" Margin="0,6,0,0" />
+                                    Value="{Binding BackplateOpacity}" Margin="0,6,0,0" AutomationProperties.Name="Backplate opacity" />
 
                             <Border Height="1" Background="{StaticResource HairlineBrush}" Margin="0,16,0,16" />
 
                             <CheckBox Style="{StaticResource ToggleSwitch}" Content="Auto-contrast backplate"
-                                      IsChecked="{Binding AutoContrast}" />
+                                      AutomationProperties.Name="Auto-contrast backplate" IsChecked="{Binding AutoContrast}" />
 
                             <Grid Margin="2,18,0,0">
                                 <TextBlock Text="Minimum text scale" Style="{StaticResource CaptionText}" />
@@ -240,7 +242,7 @@
                                            Text="{Binding Value, ElementName=ScaleSlider, StringFormat={}{0:P0}}" />
                             </Grid>
                             <Slider x:Name="ScaleSlider" Style="{StaticResource DarkSlider}" Minimum="0.4" Maximum="1.0"
-                                    Value="{Binding MinFontScale}" Margin="0,6,0,0" />
+                                    Value="{Binding MinFontScale}" Margin="0,6,0,0" AutomationProperties.Name="Minimum text scale" />
                         </StackPanel>
                     </Border>
 
@@ -258,7 +260,7 @@
                             <Border CornerRadius="10" Background="{StaticResource SurfaceInsetBrush}" Padding="14,16" Margin="0,0,0,10"
                                     BorderBrush="{StaticResource HairlineBrush}" BorderThickness="1"
                                     Visibility="{Binding GlossaryEntries.Count, Converter={StaticResource ZeroToVis}}">
-                                <TextBlock Text="No terms yet. Add a Chinese word and the translation you prefer."
+                                <TextBlock Text="No terms yet. Pin a word and the translation you prefer."
                                            Style="{StaticResource MicroText}" HorizontalAlignment="Center" />
                             </Border>
 
@@ -295,10 +297,10 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}" Margin="0,0,8,0"
-                                         ui:Placeholder.Text="Chinese term"
+                                         ui:Placeholder.Text="Source term" AutomationProperties.Name="Source term"
                                          Text="{Binding NewGlossarySource, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBox Grid.Column="1" Style="{StaticResource DarkTextBox}" Margin="0,0,8,0"
-                                         ui:Placeholder.Text="Your translation"
+                                         ui:Placeholder.Text="Your translation" AutomationProperties.Name="Your translation"
                                          Text="{Binding NewGlossaryTarget, UpdateSourceTrigger=PropertyChanged}" />
                                 <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Add"
                                         Command="{Binding AddGlossaryCommand}" />

@@ -40,7 +40,7 @@ public partial class DialogWindow : Window
         (string glyph, string brushKey, string wellKey) = tone switch
         {
             DialogTone.Question => ("", "AccentBrush", "AccentSoftBrush"),
-            DialogTone.Warning  => ("", "WarningBrush", "AccentSoftBrush"),
+            DialogTone.Warning  => ("", "WarningBrush", "WarningSoftBrush"),
             DialogTone.Danger   => ("", "DangerBrush", "DangerSoftBrush"),
             _                   => ("", "AccentBrush", "AccentSoftBrush"),
         };

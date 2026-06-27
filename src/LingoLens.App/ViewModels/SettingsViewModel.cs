@@ -147,7 +147,19 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _autoContrast;
     [ObservableProperty] private double _minFontScale;
 
-    partial void OnSelectedStyleChanged(OverlayStyleKind value) => _options.Overlay.Style = value;
+    partial void OnSelectedStyleChanged(OverlayStyleKind value)
+    {
+        _options.Overlay.Style = value;
+        OnPropertyChanged(nameof(SelectedStyleDescription));
+    }
+
+    /// <summary>One-line explanation of the selected overlay style, shown under the picker.</summary>
+    public string SelectedStyleDescription => SelectedStyle switch
+    {
+        OverlayStyleKind.FloatingPanel => "Translations appear in a panel beside the original, which stays visible.",
+        OverlayStyleKind.OnDemand => "Translations show only when you hover a line or press the hotkey.",
+        _ => "English is drawn over the original text on a frosted, auto-fitting backplate.",
+    };
     partial void OnBackplateOpacityChanged(double value) => _options.Overlay.BackplateOpacity = value;
     partial void OnAutoContrastChanged(bool value) => _options.Overlay.AutoContrast = value;
     partial void OnMinFontScaleChanged(double value) => _options.Overlay.MinFontScale = value;
