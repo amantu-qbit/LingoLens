@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Data;
 
@@ -44,6 +45,24 @@ public sealed class EmptyStringToVisibilityConverter : IValueConverter
         bool invert = parameter is string s && string.Equals(s, "Invert", StringComparison.OrdinalIgnoreCase);
         bool show = invert ? !isEmpty : isEmpty;
         return show ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
+/// <summary>
+/// Turns a PascalCase identifier (typically an enum value) into spaced words for display — e.g.
+/// <c>ReplaceInPlace</c> → "Replace In Place", <c>OnDemand</c> → "On Demand". Lets enum-backed
+/// pickers read naturally without exposing internal symbol names.
+/// </summary>
+public sealed class PascalCaseToWordsConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        string s = value?.ToString() ?? string.Empty;
+        if (s.Length == 0) return s;
+        return Regex.Replace(s, "(?<=[a-z0-9])(?=[A-Z])", " ");
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>

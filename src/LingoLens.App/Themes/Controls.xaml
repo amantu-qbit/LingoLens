@@ -15,6 +15,7 @@
     <ui:InverseBoolConverter x:Key="InverseBool" />
     <ui:EmptyStringToVisibilityConverter x:Key="EmptyToVis" />
     <ui:ZeroCountToVisibilityConverter x:Key="ZeroToVis" />
+    <ui:PascalCaseToWordsConverter x:Key="EnumWords" />
 
     <!-- ===================== Typography ===================== -->
     <Style x:Key="BodyText" TargetType="TextBlock">

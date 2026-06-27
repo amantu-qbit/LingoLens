@@ -198,17 +198,26 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse x:Name="LiveDot" Width="7" Height="7" Fill="{StaticResource LiveBrush}"
                              VerticalAlignment="Center" Margin="0,0,10,0">
-                        <Ellipse.Triggers>
-                            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.3"
-                                                         Duration="0:0:1.1" AutoReverse="True" RepeatBehavior="Forever"
-                                                         EasingFunction="{StaticResource EaseInOut}" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                        </Ellipse.Triggers>
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                        <DataTrigger.EnterActions>
+                                            <BeginStoryboard Name="DotPulse">
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.3"
+                                                                     Duration="0:0:1.1" AutoReverse="True" RepeatBehavior="Forever"
+                                                                     EasingFunction="{StaticResource EaseInOut}" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </DataTrigger.EnterActions>
+                                        <DataTrigger.ExitActions>
+                                            <StopStoryboard BeginStoryboardName="DotPulse" />
+                                        </DataTrigger.ExitActions>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
                     </Ellipse>
                     <TextBlock Text="{Binding LatencyText}" Style="{StaticResource MonoText}"
                                Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
