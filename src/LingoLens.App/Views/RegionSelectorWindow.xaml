@@ -4,20 +4,53 @@
         Title="Select a region"
         WindowStyle="None" AllowsTransparency="True" ResizeMode="NoResize"
         ShowInTaskbar="False" Topmost="True" Cursor="Cross"
-        Background="#59000000">
+        Background="Transparent">
 
-    <Canvas x:Name="RootCanvas">
-        <Rectangle x:Name="SelectionBox" Visibility="Collapsed"
-                   Stroke="#4FD6B8" StrokeThickness="1.5" Fill="#244FD6B8" />
-        <Border x:Name="Hint" Background="#E6131417" CornerRadius="10" Padding="16,11"
-                BorderBrush="#2B2C32" BorderThickness="1"
-                Canvas.Left="0" Canvas.Top="0">
+    <Canvas x:Name="RootCanvas" Background="#01000000">
+
+        <!-- Dim everything except the selection (even-odd fill punches a hole). -->
+        <Path Fill="#9E000000" IsHitTestVisible="False">
+            <Path.Data>
+                <GeometryGroup FillRule="EvenOdd">
+                    <RectangleGeometry x:Name="OuterRect" />
+                    <RectangleGeometry x:Name="HoleRect" />
+                </GeometryGroup>
+            </Path.Data>
+        </Path>
+
+        <!-- Crosshair guides that track the cursor. -->
+        <Line x:Name="CrossV" Stroke="#4DEDB54A" StrokeThickness="1" IsHitTestVisible="False" />
+        <Line x:Name="CrossH" Stroke="#4DEDB54A" StrokeThickness="1" IsHitTestVisible="False" />
+
+        <!-- The selection outline. -->
+        <Rectangle x:Name="SelectionBox" Visibility="Collapsed" IsHitTestVisible="False"
+                   Stroke="#EDB54A" StrokeThickness="1.5" Fill="#1FEDB54A" />
+
+        <!-- Live dimensions readout, anchored to the selection. -->
+        <Border x:Name="DimsChip" Visibility="Collapsed" IsHitTestVisible="False"
+                Background="#E6141416" CornerRadius="7" Padding="9,5"
+                BorderBrush="#3B3B44" BorderThickness="1" Canvas.Left="0" Canvas.Top="0">
+            <TextBlock x:Name="DimsText" Foreground="#F5F5F7" FontFamily="Cascadia Mono, Consolas"
+                       FontSize="12" Text="0 × 0" />
+        </Border>
+
+        <!-- Opening hint. -->
+        <Border x:Name="Hint" Background="#E6141416" CornerRadius="11" Padding="16,11"
+                BorderBrush="#2A2A31" BorderThickness="1" Canvas.Left="0" Canvas.Top="0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="26" ShadowDepth="4" Opacity="0.5" Color="Black" />
+            </Border.Effect>
             <StackPanel Orientation="Horizontal">
-                <Ellipse Width="9" Height="9" Stroke="#4FD6B8" StrokeThickness="1.6" VerticalAlignment="Center" Margin="0,0,9,0" />
-                <TextBlock Text="Drag to select a region" Foreground="#FAFAFA"
+                <Grid Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,11,0">
+                    <Ellipse Stroke="#EDB54A" StrokeThickness="1.6" />
+                    <Ellipse Width="5" Height="5" Fill="#EDB54A" />
+                </Grid>
+                <TextBlock Text="Drag to select a region" Foreground="#F5F5F7"
                            FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" VerticalAlignment="Center" />
-                <TextBlock Text="Esc to cancel" Foreground="#878A93"
-                           FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" VerticalAlignment="Center" Margin="12,0,0,0" />
+                <Border Background="#26262B" CornerRadius="5" Padding="6,2" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Esc to cancel" Foreground="#AEAEB6"
+                               FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="11.5" VerticalAlignment="Center" />
+                </Border>
             </StackPanel>
         </Border>
     </Canvas>

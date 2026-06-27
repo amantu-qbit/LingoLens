@@ -1,0 +1,65 @@
+<Window x:Class="LingoLens.App.Views.DialogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LingoLens"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Width="440" SizeToContent="Height" WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" ShowInTaskbar="False"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
+
+    <Border Margin="18" CornerRadius="16" Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            MouseLeftButtonDown="OnDrag" RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="Lift" Y="10" />
+        </Border.RenderTransform>
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="40" ShadowDepth="6" Opacity="0.55" Color="Black" />
+        </Border.Effect>
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18"
+                                         EasingFunction="{StaticResource EaseOut}" />
+                        <DoubleAnimation Storyboard.TargetName="Lift" Storyboard.TargetProperty="Y"
+                                         From="10" To="0" Duration="0:0:0.22" EasingFunction="{StaticResource EaseOut}" />
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Border.Triggers>
+
+        <Grid Margin="24,22,24,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header: tone glyph + title -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                <Border x:Name="IconWell" Width="34" Height="34" CornerRadius="10"
+                        Background="{StaticResource AccentSoftBrush}" Margin="0,0,14,0" VerticalAlignment="Top">
+                    <TextBlock x:Name="IconGlyph" FontFamily="{StaticResource IconFont}" FontSize="16"
+                               Foreground="{StaticResource AccentBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Text="&#xE946;" />
+                </Border>
+                <TextBlock x:Name="TitleLabel" Style="{StaticResource SubtitleText}" VerticalAlignment="Center"
+                           TextWrapping="Wrap" MaxWidth="320" Text="LingoLens" />
+            </StackPanel>
+
+            <!-- Body -->
+            <TextBlock x:Name="MessageLabel" Grid.Row="1" Style="{StaticResource CaptionText}"
+                       TextWrapping="Wrap" LineHeight="19" Margin="0,0,0,22"
+                       Text="Message goes here." />
+
+            <!-- Actions -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="SecondaryButton" Style="{StaticResource GhostButton}" Content="Cancel"
+                        Click="OnSecondary" Margin="0,0,8,0" MinWidth="92" />
+                <Button x:Name="PrimaryButton" Style="{StaticResource PrimaryButton}" Content="OK"
+                        Click="OnPrimary" MinWidth="104" IsDefault="True" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

@@ -106,7 +106,9 @@ public partial class App : Application
         {
             Directory.CreateDirectory(LogDirectory);
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
+                // Information by default keeps production runs quiet and fast (the pipeline emits rich
+                // per-frame diagnostics at Debug). Drop to Debug here when diagnosing a specific issue.
+                .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
                 .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
                 .Enrich.FromLogContext()

@@ -146,14 +146,15 @@ public sealed partial class MainViewModel : ObservableObject
     /// </summary>
     private async Task<bool> EnsureTranslationModelAsync()
     {
-        var answer = MessageBox.Show(OwnerWindow,
-            "LingoLens needs a translation model before it can translate.\n\n" +
-            "Download the Fast model now? (Opus-MT Chinese→English, about 450 MB, one time.\n" +
-            "It is saved on this PC and used entirely offline.)\n\n" +
-            "You can also pick a higher-quality model later in Settings → Models.",
-            "LingoLens — download translation model",
-            MessageBoxButton.YesNo, MessageBoxImage.Question);
-        if (answer != MessageBoxResult.Yes) return false;
+        bool proceed = AppDialog.Confirm(OwnerWindow,
+            "Download a translation model",
+            "LingoLens needs a translator before it can work. The Fast model " +
+            "(Opus-MT Chinese → English, ~430 MB) downloads once, runs entirely on this PC, " +
+            "and is used offline. You can switch to a higher-quality model later in Settings.",
+            primaryText: "Download",
+            secondaryText: "Not now",
+            tone: Views.DialogTone.Question);
+        if (!proceed) return false;
 
         IsDownloading = true;
         DownloadProgress = 0;
@@ -173,10 +174,12 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show(OwnerWindow,
-                "The model download did not finish:\n\n" + ex.Message +
+            AppDialog.Notify(OwnerWindow,
+                "Download didn't finish",
+                "The model download couldn't complete: " + ex.Message +
                 "\n\nCheck your connection and try again, or download it from Settings → Models.",
-                "LingoLens", MessageBoxButton.OK, MessageBoxImage.Warning);
+                primaryText: "OK",
+                tone: Views.DialogTone.Warning);
             return false;
         }
         finally

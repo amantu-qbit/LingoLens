@@ -99,7 +99,9 @@ public sealed partial class ModelBundleViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            StatusText = "Cancelled";
+            // Cancelling your own download is benign — return the row to its idle "Download" state
+            // rather than leaving an alarm-red "Cancelled" message behind.
+            StatusText = "";
         }
         catch (Exception ex)
         {

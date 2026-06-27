@@ -22,6 +22,11 @@ internal sealed class RegionDebouncer
     private const int QuantizePx = 8;
     private const int MaxTrackedRegions = 512;
 
+    // A region that never goes quiet (subtitles repainting, scrolling chat/forum, animating menus) would
+    // otherwise reset its settle clock every frame and never commit to OCR. The max-hold guarantees such a
+    // perpetually-active region still commits on a steady cadence so live content keeps translating.
+    private const double MinMaxHoldMs = 250.0;
+
     private readonly int _uiDebounceMs;
     private readonly int _chatDebounceMs;
     private readonly Dictionary<long, Entry> _entries = new();
@@ -29,8 +34,10 @@ internal sealed class RegionDebouncer
     private struct Entry
     {
         public RectI Region;
-        public long LastChangeTs;
-        public long LastSeenTs;
+        public long FirstChangeTs;   // when this region first started changing (pre-first-commit hold anchor)
+        public long LastChangeTs;    // last frame the region changed (drives the quiet-settle clock)
+        public long LastSeenTs;      // last frame the region was present (drives stale eviction)
+        public long LastCommitTs;    // last time the region committed to OCR (post-commit hold anchor; 0 = never)
         public int DebounceMs;
         public bool Committed;
     }
@@ -62,7 +69,9 @@ internal sealed class RegionDebouncer
                 existing.Region = region;
                 existing.LastChangeTs = nowTs;
                 existing.LastSeenTs = nowTs;
-                existing.Committed = false; // new change → re-arm
+                existing.Committed = false; // new change → re-arm the quiet-settle path
+                // NB: FirstChangeTs and LastCommitTs are deliberately NOT reset here — they anchor the
+                // max-hold clock so a region that changes every frame still commits on a steady cadence.
                 _entries[key] = existing;
             }
             else
@@ -70,15 +79,18 @@ internal sealed class RegionDebouncer
                 _entries[key] = new Entry
                 {
                     Region = region,
+                    FirstChangeTs = nowTs,
                     LastChangeTs = nowTs,
                     LastSeenTs = nowTs,
+                    LastCommitTs = 0,
                     DebounceMs = DebounceFor(region),
                     Committed = false,
                 };
             }
         }
 
-        // 2) Sweep all tracked regions; emit those that have gone quiet long enough and not yet committed.
+        // 2) Sweep all tracked regions; emit those that either went quiet long enough (transient settle)
+        //    or have been continuously changing past their max-hold (so live content keeps refreshing).
         List<RectI>? settled = null;
         List<long>? stale = null;
         double evictAfterMs = Math.Max(_uiDebounceMs, _chatDebounceMs) * 10.0 + 1000.0;
@@ -88,9 +100,16 @@ internal sealed class RegionDebouncer
             Entry e = kv.Value;
             double quietMs = Stopwatch.GetElapsedTime(e.LastChangeTs, nowTs).TotalMilliseconds;
 
-            if (!e.Committed && quietMs >= e.DebounceMs)
+            // Max-hold anchor: time since the last commit (or, before any commit, since the region first
+            // started changing). A perpetually-active region is force-committed once it exceeds the cap.
+            long anchor = e.LastCommitTs != 0 ? e.LastCommitTs : e.FirstChangeTs;
+            double heldMs = Stopwatch.GetElapsedTime(anchor, nowTs).TotalMilliseconds;
+            double maxHoldMs = Math.Max(2.0 * e.DebounceMs, MinMaxHoldMs);
+
+            if (!e.Committed && (quietMs >= e.DebounceMs || heldMs >= maxHoldMs))
             {
                 e.Committed = true;
+                e.LastCommitTs = nowTs;
                 _entries[kv.Key] = e;
                 (settled ??= new List<RectI>()).Add(e.Region);
             }
