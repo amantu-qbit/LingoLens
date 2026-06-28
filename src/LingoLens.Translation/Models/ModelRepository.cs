@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Linq;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using LingoLens.Core.Models;
@@ -23,6 +24,14 @@ public sealed class ModelRepository : IModelRepository
     {
         _http = httpClient ?? new HttpClient { Timeout = TimeSpan.FromMinutes(30) };
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<ModelRepository>.Instance;
+
+        // Send a real User-Agent. Several model CDNs (notably ModelScope) reject requests with no
+        // User-Agent with 403 Forbidden; .NET's HttpClient sends none by default. A browser-like UA makes
+        // those hosts serve the file, matching how Hugging Face (which needs no UA) already worked.
+        if (!_http.DefaultRequestHeaders.Contains("User-Agent"))
+            _http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
+                "Chrome/124.0 Safari/537.36 LingoLens/0.2");
         _manifest = new Lazy<ModelManifest>(DefaultModelManifest.Create, isThreadSafe: true);
 
         ModelsRoot = Path.Combine(
@@ -96,52 +105,74 @@ public sealed class ModelRepository : IModelRepository
         IProgress<ModelDownloadProgress>? progress,
         CancellationToken ct)
     {
-        _logger.LogInformation("Downloading {Bundle}/{File} from {Url}.",
-            bundleId, asset.FileName, asset.Url);
+        var urls = asset.CandidateUrls().ToList();
+        Exception? lastError = null;
 
-        string tempPath = destination + ".part-" + Guid.NewGuid().ToString("N");
-        try
+        for (int i = 0; i < urls.Count; i++)
         {
-            using var response = await _http
-                .GetAsync(asset.Url, HttpCompletionOption.ResponseHeadersRead, ct)
-                .ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-
-            long total = response.Content.Headers.ContentLength ?? asset.SizeBytes;
-
-            await using (var http = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
-            await using (var file = new FileStream(tempPath, FileMode.Create, FileAccess.Write,
-                             FileShare.None, CopyBufferSize, useAsync: true))
+            ct.ThrowIfCancellationRequested();
+            string url = urls[i];
+            string tempPath = destination + ".part-" + Guid.NewGuid().ToString("N");
+            try
             {
-                await CopyWithProgressAsync(http, file, bundleId, asset.FileName, total, progress, ct)
+                _logger.LogInformation("Downloading {Bundle}/{File} from {Url} (source {N}/{Total}).",
+                    bundleId, asset.FileName, url, i + 1, urls.Count);
+
+                using var response = await _http
+                    .GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct)
                     .ConfigureAwait(false);
-            }
+                response.EnsureSuccessStatusCode();
 
-            if (!HasSha256(asset.Sha256))
-            {
-                // The manifest does not pin a digest for this asset; integrity cannot be verified, so
-                // skip the check (with a warning) rather than failing the download.
-                _logger.LogWarning(
-                    "Asset {Bundle}/{File} has no SHA-256 in the manifest; integrity NOT verified.",
-                    bundleId, asset.FileName);
-            }
-            else
-            {
-                string actual = await ComputeSha256Async(tempPath, ct).ConfigureAwait(false);
-                if (!string.Equals(actual, asset.Sha256, StringComparison.OrdinalIgnoreCase))
+                long total = response.Content.Headers.ContentLength ?? asset.SizeBytes;
+
+                await using (var httpStream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
+                await using (var file = new FileStream(tempPath, FileMode.Create, FileAccess.Write,
+                                 FileShare.None, CopyBufferSize, useAsync: true))
                 {
-                    throw new InvalidDataException(
-                        $"SHA-256 mismatch for {bundleId}/{asset.FileName}: expected {asset.Sha256}, got {actual}.");
+                    await CopyWithProgressAsync(httpStream, file, bundleId, asset.FileName, total, progress, ct)
+                        .ConfigureAwait(false);
                 }
-            }
 
-            // Atomic publish: overwrite any stale file in a single move.
-            File.Move(tempPath, destination, overwrite: true);
+                if (!HasSha256(asset.Sha256))
+                {
+                    // The manifest does not pin a digest for this asset; integrity cannot be verified, so
+                    // skip the check (with a warning) rather than failing the download.
+                    _logger.LogWarning(
+                        "Asset {Bundle}/{File} has no SHA-256 in the manifest; integrity NOT verified.",
+                        bundleId, asset.FileName);
+                }
+                else
+                {
+                    string actual = await ComputeSha256Async(tempPath, ct).ConfigureAwait(false);
+                    if (!string.Equals(actual, asset.Sha256, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidDataException(
+                            $"SHA-256 mismatch for {bundleId}/{asset.FileName}: expected {asset.Sha256}, got {actual}.");
+                    }
+                }
+
+                // Atomic publish: overwrite any stale file in a single move.
+                File.Move(tempPath, destination, overwrite: true);
+                return; // success — stop trying mirrors
+            }
+            catch (OperationCanceledException)
+            {
+                TryDelete(tempPath);
+                throw; // user cancelled — do not fall through to other mirrors
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+                TryDelete(tempPath);
+                _logger.LogWarning(ex,
+                    "Download of {Bundle}/{File} from {Url} failed; {Remaining} source(s) remaining.",
+                    bundleId, asset.FileName, url, urls.Count - i - 1);
+            }
         }
-        finally
-        {
-            TryDelete(tempPath);
-        }
+
+        throw new InvalidOperationException(
+            $"Could not download {bundleId}/{asset.FileName} from any of {urls.Count} source(s). " +
+            $"Last error: {lastError?.Message}", lastError);
     }
 
     private static async Task CopyWithProgressAsync(

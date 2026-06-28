@@ -38,20 +38,44 @@ public static class DefaultModelManifest
             // PP-OCRv5 mobile (det + rec + textline-orientation cls + dict). Real assets from the
             // RapidAI/RapidOCR canonical repo (ModelScope mirror, tag v3.8.0). File names MUST match
             // what PaddleOcrV5Engine / OcrModelBundles expects.
+            // Primary host is the RapidAI/RapidOCR Hugging Face mirror (no User-Agent gate, and the same
+            // host the Opus-MT bundle downloads from successfully). ModelScope is kept as a fallback —
+            // it 403s requests without a browser User-Agent, which the repository now sends, and the
+            // alternate revisions cover a moved tag. The downloader tries each source in order.
             Assets = new[]
             {
                 Asset("ch_PP-OCRv5_det_mobile.onnx",
-                    "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/det/ch_PP-OCRv5_det_mobile.onnx",
-                    "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae", 4_819_576),
+                    "https://huggingface.co/RapidAI/RapidOCR/resolve/main/onnx/PP-OCRv5/det/ch_PP-OCRv5_det_mobile.onnx",
+                    "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae", 4_819_576,
+                    new[]
+                    {
+                        "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/master/onnx/PP-OCRv5/det/ch_PP-OCRv5_det_mobile.onnx",
+                        "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/det/ch_PP-OCRv5_det_mobile.onnx",
+                    }),
                 Asset("ch_PP-OCRv5_rec_mobile.onnx",
-                    "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile.onnx",
-                    "5825fc7ebf84ae7a412be049820b4d86d77620f204a041697b0494669b1742c5", 16_631_306),
+                    "https://huggingface.co/RapidAI/RapidOCR/resolve/main/onnx/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile.onnx",
+                    "5825fc7ebf84ae7a412be049820b4d86d77620f204a041697b0494669b1742c5", 16_631_306,
+                    new[]
+                    {
+                        "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/master/onnx/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile.onnx",
+                        "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile.onnx",
+                    }),
                 Asset("ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx",
-                    "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/cls/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx",
-                    "54379ae5174d026780215fc748a7f31910dee36818e63d49e17dc598ecc82df7", 1_018_508),
+                    "https://huggingface.co/RapidAI/RapidOCR/resolve/main/onnx/PP-OCRv5/cls/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx",
+                    "54379ae5174d026780215fc748a7f31910dee36818e63d49e17dc598ecc82df7", 1_018_508,
+                    new[]
+                    {
+                        "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/master/onnx/PP-OCRv5/cls/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx",
+                        "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/onnx/PP-OCRv5/cls/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx",
+                    }),
                 Asset("ppocrv5_dict.txt",
-                    "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/paddle/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile/ppocrv5_dict.txt",
-                    "", 74_012),
+                    "https://huggingface.co/RapidAI/RapidOCR/resolve/main/paddle/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile/ppocrv5_dict.txt",
+                    "", 74_012,
+                    new[]
+                    {
+                        "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/master/paddle/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile/ppocrv5_dict.txt",
+                        "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.8.0/paddle/PP-OCRv5/rec/ch_PP-OCRv5_rec_mobile/ppocrv5_dict.txt",
+                    }),
             },
         },
         new ModelBundle
@@ -100,11 +124,12 @@ public static class DefaultModelManifest
         },
     });
 
-    private static ModelAsset Asset(string fileName, string url, string sha256, long sizeBytes) => new()
+    private static ModelAsset Asset(string fileName, string url, string sha256, long sizeBytes, string[]? mirrors = null) => new()
     {
         FileName = fileName,
         Url = url,
         Sha256 = sha256,
         SizeBytes = sizeBytes,
+        Mirrors = mirrors,
     };
 }
