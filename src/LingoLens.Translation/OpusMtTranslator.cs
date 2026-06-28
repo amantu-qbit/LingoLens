@@ -465,7 +465,7 @@ public sealed class OpusMtTranslator : ITranslator
             if (id == _eosId || id == _padId || id == _decoderStartId || id == _unkId) continue;
             if (id < 0 || id >= idToPiece.Length) continue;
             string? piece = idToPiece[id];
-            if (string.IsNullOrEmpty(piece) || piece.Length == 0) continue;
+            if (string.IsNullOrEmpty(piece)) continue;
             if (piece[0] == '<' && (piece == "<unk>" || piece == "<s>" || piece == "</s>" || piece == "<pad>")) continue;
             sb.Append(piece);
         }

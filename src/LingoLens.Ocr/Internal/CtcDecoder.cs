@@ -62,12 +62,15 @@ internal sealed class CtcDecoder
         for (int t = 0; t < timeSteps; t++)
         {
             int offset = t * classes;
-            // Argmax over the class dimension for this time-step.
+            // Argmax over the class dimension for this time-step, accumulating the row sum so we can tell
+            // whether the head already emitted a probability distribution.
             int best = 0;
             float bestVal = data[offset];
+            double rowSum = data[offset];
             for (int c = 1; c < classes; c++)
             {
                 float v = data[offset + c];
+                rowSum += v;
                 if (v > bestVal) { bestVal = v; best = c; }
             }
 
@@ -77,12 +80,15 @@ internal sealed class CtcDecoder
                 if (best < _vocabulary.Length)
                 {
                     sb.Append(_vocabulary[best]);
-                    // The raw argmax value is a probability only if the rec head already applies softmax.
-                    // If the head emits logits, the argmax value is unbounded and averaging it would
-                    // collapse confidence to ~1.0 after clamping. Normalize the selected class via a
-                    // numerically-stable softmax over this time-step so confidence is a true probability
-                    // regardless of whether the model emits probabilities or logits.
-                    confSum += SoftmaxProbability(data, offset, classes, best, bestVal);
+                    // PP-OCRv5's rec head already applies softmax, so the row sums to ~1 and the argmax
+                    // value IS the probability — re-softmaxing it would collapse confidence toward 1/C
+                    // (~1e-4 across ~18k classes) and drop every line at the confidence gate. Use the value
+                    // directly when the row is normalized; only fall back to a stable softmax if a model
+                    // ever emits raw logits (row not summing to ~1).
+                    double prob = (rowSum > 0.95 && rowSum < 1.05)
+                        ? bestVal
+                        : SoftmaxProbability(data, offset, classes, best, bestVal);
+                    confSum += Math.Clamp(prob, 0.0, 1.0);
                     confCount++;
                 }
             }

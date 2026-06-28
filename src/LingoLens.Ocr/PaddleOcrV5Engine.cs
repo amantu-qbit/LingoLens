@@ -40,6 +40,7 @@ public sealed class PaddleOcrV5Engine : IOcrEngine
     private string? _detInputName, _detOutputName;
     private string? _recInputName, _recOutputName;
     private bool _initialized;
+    private int _disposed;
 
     public PaddleOcrV5Engine(
         IModelRepository models,
@@ -283,7 +284,13 @@ public sealed class PaddleOcrV5Engine : IOcrEngine
                 }
 
                 if (string.IsNullOrWhiteSpace(text)) continue;
-                if (conf < _options.MinConfidence) continue;
+                if (conf < _options.MinConfidence)
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        _logger.LogDebug("PP-OCRv5 dropped a line below the confidence gate: conf={Conf:F3} < {Min} text=\"{Text}\".",
+                            conf, _options.MinConfidence, text);
+                    continue;
+                }
 
                 var (fg, bgCol) = OcrImaging.SampleColors(image, box.Quad);
                 output.Add(new DetectedText
@@ -312,6 +319,10 @@ public sealed class PaddleOcrV5Engine : IOcrEngine
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        // Idempotent: the engine can be disposed by both its wrapper and the DI container. A second pass
+        // would await an already-disposed semaphore and throw ObjectDisposedException at shutdown.
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+
         await DisposeSessionsAsync().ConfigureAwait(false);
         _detLock.Dispose();
         _recLock.Dispose();
@@ -319,9 +330,21 @@ public sealed class PaddleOcrV5Engine : IOcrEngine
 
     private async ValueTask DisposeSessionsAsync()
     {
-        // Serialize disposal behind the inference locks so we never free a session mid-Run.
-        await _detLock.WaitAsync().ConfigureAwait(false);
-        await _recLock.WaitAsync().ConfigureAwait(false);
+        // Serialize disposal behind the inference locks so we never free a session mid-Run. Guarded so a
+        // late call after the locks are disposed degrades to a no-op instead of throwing, releasing only
+        // the locks actually acquired.
+        bool detTaken = false, recTaken = false;
+        try
+        {
+            await _detLock.WaitAsync().ConfigureAwait(false); detTaken = true;
+            await _recLock.WaitAsync().ConfigureAwait(false); recTaken = true;
+        }
+        catch (ObjectDisposedException)
+        {
+            if (recTaken) _recLock.Release();
+            if (detTaken) _detLock.Release();
+            return;
+        }
         try
         {
             _det?.Dispose(); _det = null;
