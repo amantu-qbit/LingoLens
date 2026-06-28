@@ -70,10 +70,10 @@
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-            <!-- Brand: an aperture whose core goes emerald + breathes while translating -->
+            <!-- Brand: a lens dispersing light — prism-gradient rings, core goes emerald + breathes while translating -->
             <Grid Width="30" Height="30" VerticalAlignment="Center" Margin="3,0,0,0">
-                <Ellipse Stroke="{StaticResource AccentBrush}" StrokeThickness="2.2" />
-                <Ellipse Width="13" Height="13" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.4" Opacity="0.55" />
+                <Ellipse Stroke="{StaticResource PrismGradient}" StrokeThickness="2.4" />
+                <Ellipse Width="13" Height="13" Stroke="{StaticResource PrismGradient}" StrokeThickness="1.6" Opacity="0.7" />
                 <Ellipse x:Name="BrandCore" Width="5" Height="5" Fill="{StaticResource AccentBrush}">
                     <Ellipse.Style>
                         <Style TargetType="Ellipse">
@@ -109,23 +109,29 @@
                         <Grid>
                             <Border x:Name="ring" CornerRadius="13" Margin="-3" BorderThickness="2"
                                     BorderBrush="{StaticResource AccentLineBrush}" Opacity="0" />
-                            <Border x:Name="bd" CornerRadius="12" Background="{StaticResource AccentBrush}"
+                            <Border x:Name="bd" CornerRadius="12" Background="{StaticResource GoGradient}"
                                     RenderTransformOrigin="0.5,0.5">
                                 <Border.RenderTransform>
                                     <ScaleTransform x:Name="sc" ScaleX="1" ScaleY="1" />
                                 </Border.RenderTransform>
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Grid>
+                                    <Border x:Name="veil" CornerRadius="12" Background="#FFFFFF" Opacity="0" />
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
                             </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource StopGradient}" />
+                            </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                                <Setter TargetName="veil" Property="Opacity" Value="0.14" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
                                 <Setter TargetName="ring" Property="Opacity" Value="1" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentPressedBrush}" />
+                                <Setter TargetName="bd" Property="Opacity" Value="0.92" />
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
@@ -184,7 +190,7 @@
                     AutomationProperties.Name="Change languages">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xF2B7;" FontSize="14"
-                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,10,0" VerticalAlignment="Center" />
+                               Foreground="{StaticResource HueViolet}" Margin="0,0,10,0" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding LanguagePair}" VerticalAlignment="Center"
                                Foreground="{StaticResource TextSecondaryBrush}" />
                 </StackPanel>

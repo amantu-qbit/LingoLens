@@ -2,74 +2,113 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ============================================================
-         LingoLens · "Optic" design language
-         An instrument-grade dark interface: a warm graphite canvas,
-         a single amber focus accent for the one thing you press, and
-         an emerald signal reserved for the live, translating state.
-         Hierarchy is carried by weight, size and a four-step neutral
-         ramp — never by decoration. Geometry rides an 8px grid.
+         LingoLens · "Prism" design language
+         A vivid, multi-hue interface on a cool deep canvas. The brand
+         is a lens dispersing light — a cyan→violet→magenta gradient.
+         Azure is the interactive accent; a green→teal gradient means
+         "go" (turning rose for stop); emerald is the live signal; and
+         each settings section carries its own hue for fast navigation.
+         Geometry rides an 8px grid.
          ============================================================ -->
 
-    <!-- ===== Canvas & surfaces — warm graphite, layered by lightness ===== -->
-    <SolidColorBrush x:Key="CanvasBrush"         Color="#0B0B0C" />
-    <SolidColorBrush x:Key="ScrimBrush"          Color="#A6060607" />
-    <SolidColorBrush x:Key="SurfaceBrush"        Color="#141416" />
-    <SolidColorBrush x:Key="SurfaceAltBrush"     Color="#1B1B1E" />
-    <SolidColorBrush x:Key="SurfaceInsetBrush"   Color="#0F0F11" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush"  Color="#26262B" />
-    <SolidColorBrush x:Key="SurfaceOverlayBrush" Color="#1F1F23" />
+    <!-- ===== Canvas & surfaces — cool deep charcoal-navy ===== -->
+    <SolidColorBrush x:Key="CanvasBrush"         Color="#0A0C12" />
+    <SolidColorBrush x:Key="ScrimBrush"          Color="#A6070910" />
+    <SolidColorBrush x:Key="SurfaceBrush"        Color="#13161F" />
+    <SolidColorBrush x:Key="SurfaceAltBrush"     Color="#1A1E29" />
+    <SolidColorBrush x:Key="SurfaceInsetBrush"   Color="#0E1118" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush"  Color="#262B39" />
+    <SolidColorBrush x:Key="SurfaceOverlayBrush" Color="#1E2331" />
 
-    <!-- ===== Lines — hairlines that read as machined edges, not boxes ===== -->
-    <SolidColorBrush x:Key="HairlineBrush"       Color="#1F1F23" />
-    <SolidColorBrush x:Key="BorderBrush"         Color="#2A2A31" />
-    <SolidColorBrush x:Key="BorderStrongBrush"   Color="#3B3B44" />
+    <!-- ===== Lines ===== -->
+    <SolidColorBrush x:Key="HairlineBrush"       Color="#1E222D" />
+    <SolidColorBrush x:Key="BorderBrush"         Color="#2A2F3E" />
+    <SolidColorBrush x:Key="BorderStrongBrush"   Color="#3A4255" />
 
-    <!-- ===== Text — neutral whites in deliberate, readable steps ===== -->
-    <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#F5F5F7" />
-    <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#AEAEB6" />
-    <SolidColorBrush x:Key="TextTertiaryBrush"   Color="#76767E" />
-    <SolidColorBrush x:Key="TextDisabledBrush"   Color="#56565D" />
+    <!-- ===== Text — cool whites ===== -->
+    <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#F3F5FB" />
+    <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#AEB5C6" />
+    <SolidColorBrush x:Key="TextTertiaryBrush"   Color="#767E92" />
+    <SolidColorBrush x:Key="TextDisabledBrush"   Color="#555C6E" />
 
-    <!-- ===== Accent — amber "focus": the colour of the control you press ===== -->
-    <SolidColorBrush x:Key="AccentBrush"         Color="#EDB54A" />
-    <SolidColorBrush x:Key="AccentHoverBrush"    Color="#F7C766" />
-    <SolidColorBrush x:Key="AccentPressedBrush"  Color="#CF9C34" />
-    <SolidColorBrush x:Key="AccentInkBrush"      Color="#1A1304" />
-    <SolidColorBrush x:Key="AccentSoftBrush"     Color="#24EDB54A" />
-    <SolidColorBrush x:Key="AccentSubtleBrush"   Color="#14EDB54A" />
-    <SolidColorBrush x:Key="AccentLineBrush"     Color="#59EDB54A" />
+    <!-- ===== Accent — azure (the interactive colour) ===== -->
+    <SolidColorBrush x:Key="AccentBrush"         Color="#3B82F6" />
+    <SolidColorBrush x:Key="AccentHoverBrush"    Color="#5B9CFF" />
+    <SolidColorBrush x:Key="AccentPressedBrush"  Color="#2E6AD6" />
+    <SolidColorBrush x:Key="AccentInkBrush"      Color="#FFFFFF" />
+    <SolidColorBrush x:Key="AccentSoftBrush"     Color="#243B82F6" />
+    <SolidColorBrush x:Key="AccentSubtleBrush"   Color="#163B82F6" />
+    <SolidColorBrush x:Key="AccentLineBrush"     Color="#593B82F6" />
 
-    <!-- ===== Live — emerald: reserved for the active, translating signal ===== -->
-    <SolidColorBrush x:Key="LiveBrush"           Color="#43D6A0" />
-    <SolidColorBrush x:Key="LiveSoftBrush"       Color="#2243D6A0" />
-    <SolidColorBrush x:Key="LiveLineBrush"       Color="#5943D6A0" />
+    <!-- ===== Live — emerald ===== -->
+    <SolidColorBrush x:Key="LiveBrush"           Color="#2BD49A" />
+    <SolidColorBrush x:Key="LiveSoftBrush"       Color="#222BD49A" />
+    <SolidColorBrush x:Key="LiveLineBrush"       Color="#592BD49A" />
 
-    <!-- ===== Semantic — used sparingly, kept inside the mood. Warning is a distinct, warmer
-         orange so "something needs you" never reads as the amber "press me" accent. ===== -->
-    <SolidColorBrush x:Key="SuccessBrush"        Color="#43D6A0" />
-    <SolidColorBrush x:Key="WarningBrush"        Color="#E8923A" />
-    <SolidColorBrush x:Key="WarningSoftBrush"    Color="#22E8923A" />
-    <SolidColorBrush x:Key="WarningLineBrush"    Color="#59E8923A" />
-    <SolidColorBrush x:Key="DangerBrush"         Color="#E5645D" />
-    <SolidColorBrush x:Key="DangerSoftBrush"     Color="#22E5645D" />
+    <!-- ===== Semantic ===== -->
+    <SolidColorBrush x:Key="SuccessBrush"        Color="#2BD49A" />
+    <SolidColorBrush x:Key="WarningBrush"        Color="#F5A623" />
+    <SolidColorBrush x:Key="WarningSoftBrush"    Color="#22F5A623" />
+    <SolidColorBrush x:Key="WarningLineBrush"    Color="#59F5A623" />
+    <SolidColorBrush x:Key="DangerBrush"         Color="#FB5779" />
+    <SolidColorBrush x:Key="DangerSoftBrush"     Color="#22FB5779" />
 
-    <!-- ===== Raw colours for places that need a Color (shadows, animation) ===== -->
+    <!-- ===== Hue set — used for section accents, chips and category colour ===== -->
+    <SolidColorBrush x:Key="HueAzure"            Color="#3B82F6" />
+    <SolidColorBrush x:Key="HueViolet"           Color="#8B5CF6" />
+    <SolidColorBrush x:Key="HueCyan"             Color="#22D3EE" />
+    <SolidColorBrush x:Key="HuePink"             Color="#F65DAA" />
+    <SolidColorBrush x:Key="HueAmber"            Color="#F5A623" />
+    <SolidColorBrush x:Key="HueGreen"            Color="#2BD49A" />
+    <SolidColorBrush x:Key="HueCoral"            Color="#FF7A45" />
+
+    <!-- ===== Signature gradients ===== -->
+    <!-- The brand prism: cyan → violet → magenta, light through a lens. -->
+    <LinearGradientBrush x:Key="PrismGradient" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#22D3EE" Offset="0" />
+        <GradientStop Color="#8B5CF6" Offset="0.55" />
+        <GradientStop Color="#F65DAA" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Primary action surface — azure → indigo. -->
+    <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#3B82F6" Offset="0" />
+        <GradientStop Color="#6366F1" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="AccentGradientHover" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#5B9CFF" Offset="0" />
+        <GradientStop Color="#7C7DFF" Offset="1" />
+    </LinearGradientBrush>
+    <!-- "Go" — start translating (green → teal). -->
+    <LinearGradientBrush x:Key="GoGradient" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#1FD18B" Offset="0" />
+        <GradientStop Color="#15B8C9" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="GoGradientHover" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#33E0A0" Offset="0" />
+        <GradientStop Color="#27CADC" Offset="1" />
+    </LinearGradientBrush>
+    <!-- "Stop" — rose → red, shown while running. -->
+    <LinearGradientBrush x:Key="StopGradient" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FB5779" Offset="0" />
+        <GradientStop Color="#F43F5E" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="StopGradientHover" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FF6E8C" Offset="0" />
+        <GradientStop Color="#FB5572" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- ===== Raw colours for shadows / animation ===== -->
     <Color x:Key="ShadowColor">#000000</Color>
-    <Color x:Key="AccentColor">#EDB54A</Color>
-    <Color x:Key="LiveColor">#43D6A0</Color>
+    <Color x:Key="AccentColor">#3B82F6</Color>
+    <Color x:Key="LiveColor">#2BD49A</Color>
 
-    <!-- ===================== Typography =====================
-         Segoe UI Variable across the board (ships with Windows 11, falls back
-         to Segoe UI). Optical sizes — Display for headings, Text for body —
-         plus Cascadia Mono for numeric instrument readouts. Weight, size and
-         colour carry the hierarchy; no decorative families. -->
+    <!-- ===================== Typography ===================== -->
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="SmallFont">Segoe UI Variable Small, Segoe UI</FontFamily>
     <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
-    <!-- Shared easing curve — a calm, decelerating ease used by every transition. -->
     <CubicEase x:Key="EaseOut" EasingMode="EaseOut" />
     <QuadraticEase x:Key="EaseInOut" EasingMode="EaseInOut" />
 

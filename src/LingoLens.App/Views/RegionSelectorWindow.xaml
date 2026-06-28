@@ -19,12 +19,12 @@
         </Path>
 
         <!-- Crosshair guides that track the cursor. -->
-        <Line x:Name="CrossV" Stroke="#4DEDB54A" StrokeThickness="1" IsHitTestVisible="False" />
-        <Line x:Name="CrossH" Stroke="#4DEDB54A" StrokeThickness="1" IsHitTestVisible="False" />
+        <Line x:Name="CrossV" Stroke="#4D3B82F6" StrokeThickness="1" IsHitTestVisible="False" />
+        <Line x:Name="CrossH" Stroke="#4D3B82F6" StrokeThickness="1" IsHitTestVisible="False" />
 
         <!-- The selection outline. -->
         <Rectangle x:Name="SelectionBox" Visibility="Collapsed" IsHitTestVisible="False"
-                   Stroke="#EDB54A" StrokeThickness="1.5" Fill="#1FEDB54A" />
+                   Stroke="#3B82F6" StrokeThickness="1.5" Fill="#1F3B82F6" />
 
         <!-- Live dimensions readout, anchored to the selection. -->
         <Border x:Name="DimsChip" Visibility="Collapsed" IsHitTestVisible="False"
@@ -42,8 +42,8 @@
             </Border.Effect>
             <StackPanel Orientation="Horizontal">
                 <Grid Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,11,0">
-                    <Ellipse Stroke="#EDB54A" StrokeThickness="1.6" />
-                    <Ellipse Width="5" Height="5" Fill="#EDB54A" />
+                    <Ellipse Stroke="#3B82F6" StrokeThickness="1.6" />
+                    <Ellipse Width="5" Height="5" Fill="#3B82F6" />
                 </Grid>
                 <TextBlock Text="Drag to select a region" Foreground="#F5F5F7"
                            FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" VerticalAlignment="Center" />
