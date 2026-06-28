@@ -9,6 +9,23 @@ public sealed record ModelAsset
     public required string Url { get; init; }
     public required string Sha256 { get; init; }
     public long SizeBytes { get; init; }
+
+    /// <summary>
+    /// Optional fallback download URLs (alternate hosts / revisions) tried in order if <see cref="Url"/>
+    /// fails — a host returning 403/404 or a transient error no longer blocks the install. Any pinned
+    /// <see cref="Sha256"/> still applies to whichever mirror serves the file.
+    /// </summary>
+    public IReadOnlyList<string>? Mirrors { get; init; }
+
+    /// <summary>The primary URL followed by any mirrors, in attempt order.</summary>
+    public IEnumerable<string> CandidateUrls()
+    {
+        yield return Url;
+        if (Mirrors is null) yield break;
+        foreach (string m in Mirrors)
+            if (!string.IsNullOrWhiteSpace(m) && !string.Equals(m, Url, StringComparison.Ordinal))
+                yield return m;
+    }
 }
 
 /// <summary>A named set of files that make up one model (e.g. det+rec+cls+dict for PP-OCRv5).</summary>

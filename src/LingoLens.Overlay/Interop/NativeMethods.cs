@@ -192,6 +192,11 @@ internal static unsafe class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SetProcessDpiAwarenessContext(IntPtr value);
 
+    // Per-THREAD DPI context — set on the overlay's own UI thread before its window exists so the layered
+    // window and SetWindowPos are never DPI-virtualized on scaled displays. Returns the previous context.
+    [DllImport("user32.dll")]
+    internal static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
+
     [DllImport("user32.dll")]
     internal static extern uint GetDpiForWindow(IntPtr hWnd);
 
