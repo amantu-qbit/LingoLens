@@ -486,8 +486,9 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
     {
         if (_hwnd == IntPtr.Zero) return;
 
-        int w = Math.Max(1, bounds.Width);
-        int h = Math.Max(1, bounds.Height);
+        int reqW = Math.Max(1, bounds.Width);
+        int reqH = Math.Max(1, bounds.Height);
+        int w = reqW, h = reqH;
         _mapDiagLogged = false; // re-log the coordinate mapping for this (new) target
 
         NativeMethods.SetWindowPos(
@@ -499,11 +500,22 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
         // overlay thread set to per-monitor-v2 these match exactly; reading back keeps the swapchain pixel
         // grid aligned to the on-screen pixel grid even if any residual DPI-virtualization remains, so the
         // mapped boxes land on top of the source text instead of being scaled/shifted.
-        if (NativeMethods.GetWindowRect(_hwnd, out var wr))
+        bool gotRect = NativeMethods.GetWindowRect(_hwnd, out var wr);
+        if (gotRect)
         {
             w = Math.Max(1, wr.Right - wr.Left);
             h = Math.Max(1, wr.Bottom - wr.Top);
         }
+
+        // Unconditional placement diagnostic (once per target): shows whether the overlay window landed
+        // where it was asked to. A realized rect whose top/left differs from the requested bounds, or whose
+        // size differs from the request, is the smoking gun for a monitor-mode offset — and unlike the
+        // per-item "Overlay map:" line, this is logged even when no text is drawn.
+        uint winDpi = NativeMethods.GetDpiForWindow(_hwnd);
+        _logger.LogInformation(
+            "Overlay placement: requested=({BX},{BY} {BW}x{BH}) realized={Realized} dpi={Dpi}.",
+            bounds.X, bounds.Y, reqW, reqH,
+            gotRect ? $"({wr.Left},{wr.Top})-({wr.Right},{wr.Bottom})" : "(n/a)", winDpi);
 
         EnsureSwapChain(w, h);
         RenderCurrent();
