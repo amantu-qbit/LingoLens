@@ -80,6 +80,12 @@ public sealed class ExponentialOverlayStabilizer : IOverlayStabilizer
         public double IncomingOpacity;   // target opacity from the incoming item this frame (when alive)
         public double OpacityAtDisappear;// opacity captured the frame the id stopped appearing
         public bool WasAliveLastFrame;   // for detecting the alive→gone transition
+
+        // Region-aware expiry (used when the incoming frame carries ChangedRegions): once a not-incoming
+        // track's source region is re-examined without re-confirming it, the track starts a one-way fade.
+        public bool Expiring;            // latched: the source region changed and this item was not re-found
+        public long ExpireStartTicks;    // when the expiry fade began
+        public double ExpireStartOpacity;// opacity at the start of the expiry fade
     }
 
     private readonly Settings _settings;
@@ -158,6 +164,7 @@ public sealed class ExponentialOverlayStabilizer : IOverlayStabilizer
             track.BackgroundArgb = item.BackgroundArgb;
             track.LastSeenTicks = now;
             track.Alive = true;
+            track.Expiring = false; // re-confirmed this frame ⇒ cancel any in-progress expiry fade
             track.IncomingOpacity = Math.Clamp(item.Opacity, 0.0, 1.0);
 
             if (!string.Equals(item.Text, track.DisplayText, StringComparison.Ordinal))
@@ -181,6 +188,13 @@ public sealed class ExponentialOverlayStabilizer : IOverlayStabilizer
                 track.PendingText = null;
             }
         }
+
+        // When the incoming frame tells us which regions were re-examined, we can persist translations
+        // whose source did NOT change and expire only those whose region was re-OCR'd without re-finding
+        // them. This is what keeps a static translation pinned in place (instead of fading after a fixed
+        // grace) while promptly clearing a translation whose underlying text scrolled away or changed.
+        IReadOnlyList<RectI> changedRegions = incoming.ChangedRegions;
+        bool haveChangeInfo = changedRegions is { Count: > 0 };
 
         // 2) Advance every track (alive or fading) and emit the ones still visible.
         var items = new List<OverlayItem>(_tracks.Count);
@@ -215,8 +229,35 @@ public sealed class ExponentialOverlayStabilizer : IOverlayStabilizer
                 // (the boxes were drawn, but DrawItem skips anything <=0.001, so nothing was visible).
                 computedOpacity = track.IncomingOpacity;
             }
+            else if (haveChangeInfo)
+            {
+                // Region-aware lifecycle. A track is only retired once the area under it is re-examined and
+                // it isn't re-found there — otherwise its source is presumed unchanged and it persists.
+                if (!track.Expiring && IntersectsAny(track.DisplayBox, changedRegions))
+                {
+                    // Source region was re-OCR'd this frame but this item was not among the results ⇒ its
+                    // text changed or scrolled away. Begin a one-way fade from its current opacity.
+                    track.Expiring = true;
+                    track.ExpireStartTicks = now;
+                    track.ExpireStartOpacity = track.Opacity > 0.001 ? track.Opacity : track.IncomingOpacity;
+                }
+
+                if (track.Expiring)
+                {
+                    double sinceExpire = TicksToMs(now - track.ExpireStartTicks);
+                    double fadeFraction = fadeMs <= 0 ? 0.0 : Math.Clamp(1.0 - sinceExpire / fadeMs, 0.0, 1.0);
+                    computedOpacity = track.ExpireStartOpacity * fadeFraction;
+                }
+                else
+                {
+                    // Source unchanged (its region was not re-examined) ⇒ keep the translation in place at
+                    // full opacity instead of fading it out on a timer.
+                    computedOpacity = track.Opacity > 0.001 ? track.Opacity : track.IncomingOpacity;
+                }
+            }
             else
             {
+                // No change information: fall back to a purely time-based grace + fade (legacy behavior).
                 double sinceGone = TicksToMs(now - track.LastSeenTicks);
                 double afterGrace = sinceGone - _settings.DisappearGraceMilliseconds;
                 if (afterGrace <= 0)
@@ -302,6 +343,22 @@ public sealed class ExponentialOverlayStabilizer : IOverlayStabilizer
             Lerp(current.TopRight, target.TopRight, alpha),
             Lerp(current.BottomRight, target.BottomRight, alpha),
             Lerp(current.BottomLeft, target.BottomLeft, alpha));
+    }
+
+    /// <summary>
+    /// True when the box's center lies inside any of the re-examined regions — i.e. the place this
+    /// translation occupies was re-OCR'd this frame. Using the center (rather than any-overlap) avoids
+    /// retiring a translation when only an unrelated sliver of its bounds (e.g. a blinking cursor at the
+    /// line end) changed.
+    /// </summary>
+    private static bool IntersectsAny(Quad box, IReadOnlyList<RectI> regions)
+    {
+        var b = box.Bounds;
+        int cx = (int)(b.X + b.Width / 2.0);
+        int cy = (int)(b.Y + b.Height / 2.0);
+        for (int i = 0; i < regions.Count; i++)
+            if (regions[i].Contains(cx, cy)) return true;
+        return false;
     }
 
     private static double MaxCornerDelta(Quad a, Quad b) => Math.Max(

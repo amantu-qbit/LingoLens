@@ -54,6 +54,16 @@ public sealed record OverlayFrame
     /// <summary>The frame/source pixel-space bounds these items are expressed in.</summary>
     public required RectI SourceBounds { get; init; }
 
+    /// <summary>
+    /// The source-space regions that were re-examined (re-OCR'd) to produce this frame, if known. The
+    /// stabilizer uses these to decide which previously-shown translations are now stale: a prior item
+    /// whose box lies inside a re-examined region but is absent from <see cref="Items"/> has had its
+    /// source change or disappear, so it is expired; items whose regions were NOT re-examined persist
+    /// (their source is unchanged). Empty ⇒ unknown, in which case the stabilizer falls back to a purely
+    /// time-based grace/fade.
+    /// </summary>
+    public IReadOnlyList<RectI> ChangedRegions { get; init; } = Array.Empty<RectI>();
+
     public long TimestampTicks { get; init; }
 
     public static readonly OverlayFrame Empty =

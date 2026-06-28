@@ -581,10 +581,18 @@ public sealed class TranslationPipeline : ITranslationPipeline
 
             if (detections.Count == 0)
             {
-                // Windows OCR is flaky frame-to-frame: it intermittently returns nothing for a region that
-                // plainly has text. Presenting an empty frame here cleared the overlay, so translated text
-                // flickered away after ~1 s. Instead keep the last overlay up and just record the frame —
-                // real text on a later frame replaces it, and Pause/Stop still clears explicitly.
+                // The regions we re-examined this frame produced no translatable text. Present an empty
+                // frame that still carries those changed regions: the stabilizer retires only the prior
+                // translations whose source was re-examined and is now gone, while translations in
+                // untouched regions persist. This replaces the old "freeze the last overlay" behavior,
+                // which left stale boxes pinned where text used to be once the text scrolled away — the
+                // root cause of the "translations stuck in the wrong place" reports. OCR flicker is still
+                // absorbed: a region that flakes to empty re-confirms on the next frame, and the stabilizer
+                // fades over ~120 ms rather than blinking.
+                OverlayFrame cleared = BuildOverlayFrame(
+                    Array.Empty<DetectedText>(), TranslationResult.Empty,
+                    sourceBounds, work.ChangedRegions, work.CaptureTimestampTicks);
+                PresentStabilized(cleared, timer);
                 CommitFrameMetrics(work, hadText: false);
                 return;
             }
@@ -598,7 +606,7 @@ public sealed class TranslationPipeline : ITranslationPipeline
 
             // ---- Layout / build overlay frame + temporal smoothing ----
             OverlayFrame overlay = timer.Measure(PipelineStage.Layout, () =>
-                BuildOverlayFrame(detections, translation, sourceBounds, work.CaptureTimestampTicks));
+                BuildOverlayFrame(detections, translation, sourceBounds, work.ChangedRegions, work.CaptureTimestampTicks));
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
@@ -801,6 +809,7 @@ public sealed class TranslationPipeline : ITranslationPipeline
         IReadOnlyList<DetectedText> detections,
         TranslationResult translation,
         RectI sourceBounds,
+        IReadOnlyList<RectI> changedRegions,
         long timestampTicks)
     {
         var byId = new Dictionary<string, string>(translation.Items.Count, StringComparer.Ordinal);
@@ -832,6 +841,7 @@ public sealed class TranslationPipeline : ITranslationPipeline
         {
             Items = items,
             SourceBounds = sourceBounds,
+            ChangedRegions = changedRegions,
             TimestampTicks = timestampTicks,
         };
     }
