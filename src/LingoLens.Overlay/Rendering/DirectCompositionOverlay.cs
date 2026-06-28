@@ -82,6 +82,10 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
     private int _swapWidth;
     private int _swapHeight;
     private bool _mapDiagLogged; // emit the coordinate-mapping diagnostic once per target
+    // Opt-in calibration: set LINGOLENS_CALIBRATE=1 to outline the overlay surface so its true on-screen
+    // edges/origin are visible — proves exactly where the overlay coordinate space lands.
+    private readonly bool _calibrate =
+        string.Equals(Environment.GetEnvironmentVariable("LINGOLENS_CALIBRATE"), "1", StringComparison.Ordinal);
 
     // Latest frame to draw (latest-wins; the render thread reads this).
     private OverlayFrame _pendingFrame = OverlayFrame.Empty;
@@ -320,7 +324,12 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
             Marshal.FreeHGlobal(classNamePtr);
         }
 
-        uint exStyle = NativeMethods.WS_EX_LAYERED | NativeMethods.WS_EX_TRANSPARENT |
+        // NOTE: deliberately NOT WS_EX_LAYERED. A layered window draws from a layer surface, which
+        // contradicts WS_EX_NOREDIRECTIONBITMAP (no redirection surface; DirectComposition supplies every
+        // pixel). That combination can make DWM mis-composite the window. Transparency comes from the
+        // premultiplied-alpha DComp swapchain, and click-through from WS_EX_TRANSPARENT + the HTTRANSPARENT
+        // hit-test — so the layer style is both unnecessary and harmful here.
+        uint exStyle = NativeMethods.WS_EX_TRANSPARENT |
                        NativeMethods.WS_EX_TOPMOST | NativeMethods.WS_EX_NOACTIVATE |
                        NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_NOREDIRECTIONBITMAP;
 
@@ -566,6 +575,9 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
         ctx.Transform = Matrix3x2.Identity;
         ctx.Clear(new Color4(0f, 0f, 0f, 0f)); // fully transparent
 
+        if (_calibrate)
+            DrawCalibration(ctx);
+
         if (frame.Items.Count > 0 && !frame.SourceBounds.IsEmpty)
         {
             // Map source-pixel space → window-local pixel space.
@@ -614,6 +626,35 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
             _logger.LogDebug("Overlay drew {Count} item(s) into {W}x{H} (first opacity {Op:F2}).",
                 frame.Items.Count, _swapWidth, _swapHeight,
                 frame.Items.Count > 0 ? frame.Items[0].Opacity : 0.0);
+    }
+
+    /// <summary>
+    /// Calibration overlay (LINGOLENS_CALIBRATE=1): a cyan outline of the whole overlay surface, magenta
+    /// horizontal lines at 0/¼/½/¾/full height, and a solid origin marker at (0,0). Where these land on
+    /// screen reveals the exact composition transform — the definitive way to measure any placement offset.
+    /// </summary>
+    private void DrawCalibration(ID2D1DeviceContext ctx)
+    {
+        float w = _swapWidth, h = _swapHeight;
+        if (w < 2 || h < 2) return;
+
+        using var cyan = ctx.CreateSolidColorBrush(new Color4(0f, 1f, 1f, 1f));
+        using var magenta = ctx.CreateSolidColorBrush(new Color4(1f, 0f, 1f, 1f));
+
+        const float t = 6f;
+        // Full-surface outline as four bars (FillRectangle only — same primitive used by DrawItem).
+        ctx.FillRectangle(new System.Drawing.RectangleF(0f, 0f, w, t), cyan);        // top
+        ctx.FillRectangle(new System.Drawing.RectangleF(0f, h - t, w, t), cyan);     // bottom
+        ctx.FillRectangle(new System.Drawing.RectangleF(0f, 0f, t, h), cyan);        // left
+        ctx.FillRectangle(new System.Drawing.RectangleF(w - t, 0f, t, h), cyan);     // right
+        // Horizontal reference lines at ¼/½/¾ height.
+        for (int i = 1; i <= 3; i++)
+        {
+            float y = h * i / 4f;
+            ctx.FillRectangle(new System.Drawing.RectangleF(0f, y - 1.5f, w, 3f), magenta);
+        }
+        // Solid origin marker at (0,0).
+        ctx.FillRectangle(new System.Drawing.RectangleF(0f, 0f, 80f, 80f), magenta);
     }
 
     private void DrawItem(ID2D1DeviceContext ctx, OverlayItem item, OverlayStyle style,
