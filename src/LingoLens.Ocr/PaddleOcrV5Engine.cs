@@ -41,6 +41,7 @@ public sealed class PaddleOcrV5Engine : IOcrEngine
     private string? _recInputName, _recOutputName;
     private bool _initialized;
     private int _disposed;
+    private string? _lastPlacementSig; // de-dups the placement diagnostic (log only on change)
 
     public PaddleOcrV5Engine(
         IModelRepository models,
@@ -172,6 +173,13 @@ public sealed class PaddleOcrV5Engine : IOcrEngine
 
             await RecognizeBoxesAsync(image, boxes, output, ct).ConfigureAwait(false);
         }
+
+        // Placement diagnostic (on change): pins the monitor-mode offset to either the capture or the
+        // coordinate mapping. We log, in frame-pixel space, (a) where the non-black CONTENT actually sits in
+        // the captured texture and (b) the Y-range of the boxes OCR produced. If content sits at the top but
+        // boxes come out low, the detector mapping is wrong; if the content itself sits low, the capture is
+        // delivering a vertically-shifted texture. Logged only when the signature changes, so it is not spammy.
+        LogPlacementDiagnostic(image, frameW, frameH, output);
 
         return output;
     }
@@ -314,6 +322,63 @@ public sealed class PaddleOcrV5Engine : IOcrEngine
     {
         double dx = a.X - b.X, dy = a.Y - b.Y;
         return Math.Sqrt(dx * dx + dy * dy);
+    }
+
+    /// <summary>
+    /// Logs (on change) where the captured texture's non-black content sits versus where OCR placed its
+    /// boxes — both in frame-pixel space. This is the decisive instrument for the monitor-mode placement
+    /// offset: it separates a vertically-shifted capture (content itself is low) from a detector mapping
+    /// bug (content is at the top but boxes come out low).
+    /// </summary>
+    private void LogPlacementDiagnostic(
+        OcrImaging.BgraImage image, int frameW, int frameH, List<DetectedText> output)
+    {
+        if (!_logger.IsEnabled(LogLevel.Information)) return;
+
+        // Non-black content bounding box, subsampled for speed (step ~ every 8th row / 8th column).
+        int stepX = Math.Max(1, frameW / 320);
+        int stepY = Math.Max(1, frameH / 180);
+        int cMinX = int.MaxValue, cMinY = int.MaxValue, cMaxX = int.MinValue, cMaxY = int.MinValue;
+        var px = image.Pixels.Span;
+        for (int y = 0; y < frameH; y += stepY)
+        {
+            int row = y * image.Stride;
+            for (int x = 0; x < frameW; x += stepX)
+            {
+                int i = row + x * 4;
+                if (i + 2 >= px.Length) continue;
+                if (px[i] > 16 || px[i + 1] > 16 || px[i + 2] > 16)
+                {
+                    if (x < cMinX) cMinX = x;
+                    if (x > cMaxX) cMaxX = x;
+                    if (y < cMinY) cMinY = y;
+                    if (y > cMaxY) cMaxY = y;
+                }
+            }
+        }
+
+        string content = cMaxX < 0 ? "(all black)" : $"({cMinX},{cMinY})-({cMaxX},{cMaxY})";
+
+        // Y-range of the boxes OCR produced (frame-pixel space).
+        string boxes = "(none)";
+        if (output.Count > 0)
+        {
+            double bMinY = double.MaxValue, bMaxY = double.MinValue;
+            foreach (var d in output)
+            {
+                var b = d.Box.Bounds;
+                if (b.Y < bMinY) bMinY = b.Y;
+                if (b.Bottom > bMaxY) bMaxY = b.Bottom;
+            }
+            boxes = $"{output.Count} box(es) y=[{(int)bMinY}..{(int)bMaxY}]";
+        }
+
+        string sig = $"{frameW}x{frameH}|{content}|{boxes}";
+        if (string.Equals(sig, _lastPlacementSig, StringComparison.Ordinal)) return;
+        _lastPlacementSig = sig;
+        _logger.LogInformation(
+            "OCR placement: frame={FrameW}x{FrameH} content={Content} → {Boxes}.",
+            frameW, frameH, content, boxes);
     }
 
     /// <inheritdoc />
