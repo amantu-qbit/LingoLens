@@ -81,6 +81,7 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
 
     private int _swapWidth;
     private int _swapHeight;
+    private bool _mapDiagLogged; // emit the coordinate-mapping diagnostic once per target
 
     // Latest frame to draw (latest-wins; the render thread reads this).
     private OverlayFrame _pendingFrame = OverlayFrame.Empty;
@@ -487,6 +488,7 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
 
         int w = Math.Max(1, bounds.Width);
         int h = Math.Max(1, bounds.Height);
+        _mapDiagLogged = false; // re-log the coordinate mapping for this (new) target
 
         NativeMethods.SetWindowPos(
             _hwnd, NativeMethods.HWND_TOPMOST,
@@ -561,16 +563,17 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
             float oy = -frame.SourceBounds.Y * sy;
 
             // Coordinate diagnostics: pins down a "translations land in the wrong place" report by showing
-            // the requested bounds, the actual on-screen window rect + DPI, and where item 0 maps to. This
-            // runs per frame, so it is gated to Trace — off in normal (Debug+) logging, on only when a user
-            // is explicitly diagnosing placement.
-            if (_logger.IsEnabled(LogLevel.Trace))
+            // the requested bounds, the actual on-screen window rect + DPI, and where item 0 maps to. Logged
+            // ONCE per target (at Information) so it appears in a normal log without per-frame spam — exactly
+            // what's needed to diagnose a placement offset from a user's log.
+            if (!_mapDiagLogged)
             {
+                _mapDiagLogged = true;
                 var fb0 = frame.Items[0].SourceBox.Bounds;
                 uint dpi = _hwnd != IntPtr.Zero ? NativeMethods.GetDpiForWindow(_hwnd) : 0;
                 string winRect = (_hwnd != IntPtr.Zero && NativeMethods.GetWindowRect(_hwnd, out var wr))
                     ? $"({wr.Left},{wr.Top})-({wr.Right},{wr.Bottom})" : "(n/a)";
-                _logger.LogTrace(
+                _logger.LogInformation(
                     "Overlay map: bounds=({BX},{BY} {BW}x{BH}) win={Win} dpi={Dpi} swap={SwW}x{SwH} src=({CX},{CY} {CW}x{CH}) scale=({Sx:F3},{Sy:F3}); item0 box=({IX},{IY}) → plate=({PX},{PY}).",
                     bounds.X, bounds.Y, bounds.Width, bounds.Height, winRect, dpi, _swapWidth, _swapHeight,
                     frame.SourceBounds.X, frame.SourceBounds.Y, frame.SourceBounds.Width, frame.SourceBounds.Height,
