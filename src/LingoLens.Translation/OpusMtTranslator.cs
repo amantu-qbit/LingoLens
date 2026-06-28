@@ -417,19 +417,32 @@ public sealed class OpusMtTranslator : ITranslator
         if (map is null) return ids;
 
         IReadOnlyList<EncodedToken> tokens = _sourceTokenizer!.EncodeToTokens(source, out _);
+        int unk = 0;
         foreach (EncodedToken token in tokens)
         {
             string piece = token.Value;
+            // The piece string from Microsoft.ML.Tokenizers and the HF vocab.json keys can disagree on the
+            // SentencePiece word-boundary marker (▁ vs a leading space vs no marker). Probe every convention
+            // before giving up — a piece that silently falls to <unk> is dropped on decode and makes the
+            // greedy decoder free-run and hallucinate the rest of the line.
             if (map.TryGetValue(piece, out int id) ||
-                map.TryGetValue('▁' + piece, out id)) // tolerate a missing word-boundary marker
+                map.TryGetValue('▁' + piece, out id) ||
+                map.TryGetValue(piece.TrimStart('▁'), out id) ||
+                map.TryGetValue(piece.Replace(' ', '▁'), out id))
             {
                 ids.Add(id);
             }
             else
             {
                 ids.Add(_unkId);
+                unk++;
             }
         }
+
+        // Surface the miss rate (Debug) so a tokenizer↔vocab mismatch is diagnosable from the logs.
+        if (unk > 0 && _logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("Opus-MT: {Unk}/{Total} source piece(s) had no vocab id (→ <unk>) for \"{Src}\".",
+                unk, tokens.Count, Short(source));
 
         ids.Add(_eosId);
         return ids;
@@ -539,10 +552,13 @@ public sealed class OpusMtTranslator : ITranslator
 
         using var outputs = _decoder!.Run(feeds);
         var logits = outputs.First().AsTensor<float>(); // [1, decLen, vocab]
-        return ArgMaxLastStep(logits);
+        // Suppress the structural tokens during generation (eos stays allowed so decoding can stop). If
+        // <pad>/<unk>/<decoder_start> were ever the argmax they'd pollute the decoder's own next input and
+        // amplify drift into hallucinated output.
+        return ArgMaxLastStep(logits, _padId, _unkId, _decoderStartId);
     }
 
-    private static int ArgMaxLastStep(Tensor<float> logits)
+    private static int ArgMaxLastStep(Tensor<float> logits, int suppressA, int suppressB, int suppressC)
     {
         // logits shape: [1, seq, vocab]; take the final position. The multi-dimensional indexer recomputes
         // strides on every access, which is wasteful across a ~65k-wide vocab on every decode step — read
@@ -557,6 +573,7 @@ public sealed class OpusMtTranslator : ITranslator
             ReadOnlySpan<float> row = dense.Buffer.Span.Slice((seq - 1) * vocab, vocab);
             for (int v = 0; v < vocab; v++)
             {
+                if (v == suppressA || v == suppressB || v == suppressC) continue;
                 if (row[v] > bestVal) { bestVal = row[v]; best = v; }
             }
 
@@ -565,6 +582,7 @@ public sealed class OpusMtTranslator : ITranslator
 
         for (int v = 0; v < vocab; v++)
         {
+            if (v == suppressA || v == suppressB || v == suppressC) continue;
             float val = logits[0, seq - 1, v];
             if (val > bestVal)
             {

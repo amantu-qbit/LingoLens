@@ -275,6 +275,13 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
         // Per-monitor-v2; guard if a prior call/manifest already set awareness (returns false ⇒ ignore).
         try { NativeMethods.SetProcessDpiAwarenessContext(NativeMethods.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); }
         catch { /* not fatal: older OS or already set via manifest */ }
+
+        // Critically, also set the context for THIS UI thread before the window is created. Without it, on a
+        // scaled display (e.g. 150%) the layered overlay window and SetWindowPos get DPI-virtualized: the
+        // physical-pixel swapchain is placed by DWM at a scaled screen position, which lands the translated
+        // text well below the source (the monitor-mode vertical offset). Per-thread v2 stops that.
+        try { NativeMethods.SetThreadDpiAwarenessContext(NativeMethods.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2); }
+        catch { /* older OS without the per-thread API; the process-level call above still helps */ }
     }
 
     private void CreateWindow()
@@ -485,6 +492,16 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
             _hwnd, NativeMethods.HWND_TOPMOST,
             bounds.X, bounds.Y, w, h,
             NativeMethods.SWP_NOACTIVATE);
+
+        // Size the swapchain to the window's ACTUAL realized client size, not the requested size. With the
+        // overlay thread set to per-monitor-v2 these match exactly; reading back keeps the swapchain pixel
+        // grid aligned to the on-screen pixel grid even if any residual DPI-virtualization remains, so the
+        // mapped boxes land on top of the source text instead of being scaled/shifted.
+        if (NativeMethods.GetWindowRect(_hwnd, out var wr))
+        {
+            w = Math.Max(1, wr.Right - wr.Left);
+            h = Math.Max(1, wr.Bottom - wr.Top);
+        }
 
         EnsureSwapChain(w, h);
         RenderCurrent();
