@@ -81,12 +81,13 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
 
     private int _swapWidth;
     private int _swapHeight;
-    private bool _mapDiagLogged; // emit the coordinate-mapping diagnostic once per target
-    // Calibration: outline the overlay surface so its true on-screen edges/origin are visible — proves
-    // exactly where the overlay coordinate space lands. DEFAULT ON for this diagnostic build (set
-    // LINGOLENS_CALIBRATE=0 to disable); reverts to opt-in once the monitor-mode offset is pinned.
+    private string? _lastMapSig; // re-emit the coordinate-mapping diagnostic whenever the mapping changes
+    // Calibration: outline the overlay surface so its true on-screen edges/origin are visible. This already
+    // proved the renderer maps 1:1 to the screen with origin (0,0), so it is back to opt-in (default OFF;
+    // set LINGOLENS_CALIBRATE=1 to re-enable). The remaining offset is upstream of the renderer and is now
+    // tracked via the on-change "OCR placement"/"Overlay map" log lines instead.
     private readonly bool _calibrate =
-        !string.Equals(Environment.GetEnvironmentVariable("LINGOLENS_CALIBRATE"), "0", StringComparison.Ordinal);
+        string.Equals(Environment.GetEnvironmentVariable("LINGOLENS_CALIBRATE"), "1", StringComparison.Ordinal);
 
     // Latest frame to draw (latest-wins; the render thread reads this).
     private OverlayFrame _pendingFrame = OverlayFrame.Empty;
@@ -496,7 +497,7 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
         int reqW = Math.Max(1, bounds.Width);
         int reqH = Math.Max(1, bounds.Height);
         int w = reqW, h = reqH;
-        _mapDiagLogged = false; // re-log the coordinate mapping for this (new) target
+        _lastMapSig = null; // re-log the coordinate mapping for this (new) target
 
         NativeMethods.SetWindowPos(
             _hwnd, NativeMethods.HWND_TOPMOST,
@@ -585,21 +586,36 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
             float oy = -frame.SourceBounds.Y * sy;
 
             // Coordinate diagnostics: pins down a "translations land in the wrong place" report by showing
-            // the requested bounds, the actual on-screen window rect + DPI, and where item 0 maps to. Logged
-            // ONCE per target (at Information) so it appears in a normal log without per-frame spam — exactly
-            // what's needed to diagnose a placement offset from a user's log.
-            if (!_mapDiagLogged)
+            // the requested bounds, the actual on-screen window rect + DPI, and where the boxes map to.
+            // Re-logged (at Information) whenever the mapping signature changes — the offset develops over a
+            // session, so a one-shot line on the first frame would miss it. The signature de-dups so a static
+            // screen logs only once.
+            var fb0 = frame.Items[0].SourceBox.Bounds;
+            // Y-range of the mapped plates (where text actually lands on the overlay), for the whole frame.
+            float plMinY = float.MaxValue, plMaxY = float.MinValue;
+            foreach (var it in frame.Items)
             {
-                _mapDiagLogged = true;
-                var fb0 = frame.Items[0].SourceBox.Bounds;
+                var bb = it.SourceBox.Bounds;
+                float t0 = (float)bb.Y * sy + oy, t1 = (float)bb.Bottom * sy + oy;
+                if (t0 < plMinY) plMinY = t0;
+                if (t1 > plMaxY) plMaxY = t1;
+            }
+
+            string mapSig = $"{bounds.Width}x{bounds.Height}|{_swapWidth}x{_swapHeight}|" +
+                            $"{frame.SourceBounds.Width}x{frame.SourceBounds.Height}|{sx:F2},{sy:F2}|" +
+                            $"{(int)plMinY}..{(int)plMaxY}";
+            if (!string.Equals(mapSig, _lastMapSig, StringComparison.Ordinal))
+            {
+                _lastMapSig = mapSig;
                 uint dpi = _hwnd != IntPtr.Zero ? NativeMethods.GetDpiForWindow(_hwnd) : 0;
                 string winRect = (_hwnd != IntPtr.Zero && NativeMethods.GetWindowRect(_hwnd, out var wr))
                     ? $"({wr.Left},{wr.Top})-({wr.Right},{wr.Bottom})" : "(n/a)";
                 _logger.LogInformation(
-                    "Overlay map: bounds=({BX},{BY} {BW}x{BH}) win={Win} dpi={Dpi} swap={SwW}x{SwH} src=({CX},{CY} {CW}x{CH}) scale=({Sx:F3},{Sy:F3}); item0 box=({IX},{IY}) → plate=({PX},{PY}).",
+                    "Overlay map: bounds=({BX},{BY} {BW}x{BH}) win={Win} dpi={Dpi} swap={SwW}x{SwH} src=({CX},{CY} {CW}x{CH}) scale=({Sx:F3},{Sy:F3}); {Count} item(s) plateY=[{PMinY}..{PMaxY}]; item0 box=({IX},{IY}) → plate=({PX},{PY}).",
                     bounds.X, bounds.Y, bounds.Width, bounds.Height, winRect, dpi, _swapWidth, _swapHeight,
                     frame.SourceBounds.X, frame.SourceBounds.Y, frame.SourceBounds.Width, frame.SourceBounds.Height,
-                    sx, sy, (int)fb0.X, (int)fb0.Y, (int)((float)fb0.X * sx + ox), (int)((float)fb0.Y * sy + oy));
+                    sx, sy, frame.Items.Count, (int)plMinY, (int)plMaxY,
+                    (int)fb0.X, (int)fb0.Y, (int)((float)fb0.X * sx + ox), (int)((float)fb0.Y * sy + oy));
             }
 
             foreach (var item in frame.Items)
