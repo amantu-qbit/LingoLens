@@ -82,10 +82,11 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
     private int _swapWidth;
     private int _swapHeight;
     private bool _mapDiagLogged; // emit the coordinate-mapping diagnostic once per target
-    // Opt-in calibration: set LINGOLENS_CALIBRATE=1 to outline the overlay surface so its true on-screen
-    // edges/origin are visible — proves exactly where the overlay coordinate space lands.
+    // Calibration: outline the overlay surface so its true on-screen edges/origin are visible — proves
+    // exactly where the overlay coordinate space lands. DEFAULT ON for this diagnostic build (set
+    // LINGOLENS_CALIBRATE=0 to disable); reverts to opt-in once the monitor-mode offset is pinned.
     private readonly bool _calibrate =
-        string.Equals(Environment.GetEnvironmentVariable("LINGOLENS_CALIBRATE"), "1", StringComparison.Ordinal);
+        !string.Equals(Environment.GetEnvironmentVariable("LINGOLENS_CALIBRATE"), "0", StringComparison.Ordinal);
 
     // Latest frame to draw (latest-wins; the render thread reads this).
     private OverlayFrame _pendingFrame = OverlayFrame.Empty;
@@ -324,12 +325,9 @@ public sealed class DirectCompositionOverlay : IOverlayRenderer
             Marshal.FreeHGlobal(classNamePtr);
         }
 
-        // NOTE: deliberately NOT WS_EX_LAYERED. A layered window draws from a layer surface, which
-        // contradicts WS_EX_NOREDIRECTIONBITMAP (no redirection surface; DirectComposition supplies every
-        // pixel). That combination can make DWM mis-composite the window. Transparency comes from the
-        // premultiplied-alpha DComp swapchain, and click-through from WS_EX_TRANSPARENT + the HTTRANSPARENT
-        // hit-test — so the layer style is both unnecessary and harmful here.
-        uint exStyle = NativeMethods.WS_EX_TRANSPARENT |
+        // WS_EX_LAYERED is required here: combined with WS_EX_TRANSPARENT it is what makes the window
+        // click-through (mouse falls to the windows beneath). Removing it traps clicks on the overlay.
+        uint exStyle = NativeMethods.WS_EX_LAYERED | NativeMethods.WS_EX_TRANSPARENT |
                        NativeMethods.WS_EX_TOPMOST | NativeMethods.WS_EX_NOACTIVATE |
                        NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_NOREDIRECTIONBITMAP;
 
